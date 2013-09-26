@@ -1,0 +1,169 @@
+XDrum Help
+----------
+
+Keys (PC):
+
+SPACE / 5	Stop / Start playback
+M		Switch playback mode (Pattern/Song/Live)
+R / B / 7	Rewind
+PgUP / 6	Next pattern 
+PgDown / 4	Previous pattern
+Esc		Main menu (or exit menu/dialog)
+
+
+Keys (PSP):
+
+Start		Stop / Start playback
+Select		Switch playback mode
+SQUARE		Rewind
+LSB		Previous pattern
+RSB		Next pattern
+TRIANGLE	Main menu (or exit menu/dialog)
+X		Click
+CIRCLE		Right-click
+
+
+
+XDrum Overview:
+
+XDrum is a simple (easy to use) drum machine / drum sequencer.
+
+It was designed to be:
+1. Portable (ie: useable on handheld devices)
+2. Cross-platform (ie: easily ported to run on various hardware).
+3. Simple (ie: easy to learn, easy to use)
+4. Useful (ie: for use by musos)
+
+
+Features:
+You can create drum patterns that can be arranged into a "song".
+You can change "drumkits" to get the specific drum sounds you want.
+Up to 8 drum sounds can be played simultaneously.
+Drum "songs" can be saved and loaded to disk.
+Song, "Pattern" and "Live" playback mode
+
+
+Advanced Features:
+1. Exporting to MIDI / Importing from MIDI
+2. Exporting to WAV (pattern / song)
+3. Create your own drumkits.
+4. Create your own "theme" graphics.
+5. Playback Sync (with another PSP?)
+	- Use UDP broadcast?
+6. Shuffle and randomness
+
+Issues:
+1. BIN or TEXT file format?
+2. PSP "Mouse" drift / control. (Should be able to use XDrum without mouse/anapad)
+3. Use arrow keys for moving in pattern grid (with repeat).
+4. Timing (ie: more accurate)
+	- next tick array (ie: each column in grid has a "future tick" associated with it)
+	- calculated using float math
+5. Reference drumkit in Song (by name), or embed it?
+
+
+
+
+
+
+Demo video:
+1. Loading songs and playing
+2. Loading drumkit
+3. Playback modes
+4. Mute / Solo / Track vol
+
+Editing video:
+1. Inserting notes
+2. Modifying notes
+3. Copy / Paste track
+4. Copy / Paste pattern
+5. Insert pattern into song
+
+Advanced video:
+1. Shuffle / Random
+2. Export to WAV
+ 
+
+
+
+
+Demo Video (runtime approx 3 minutes):
+
+[TITLE - PXDrum Portable Drum Machine - V1.2 - Jum Hig]
+
+[STARTUP SEQUENCE]
+This is the PXDrum 1.2 demo video. PXDrum is a simple, easy-to-use portable drum machine for 
+Sony PSP and other systems.
+
+---
+
+[MAIN SCREEN]
+This is the main PXDrum interface, showing the drum pattern grid, the track info area, and 
+areas for editing the song sequence and changing volume and beats per minute.
+
+We are going to load a drum song (also called a sequence) from the PSP's memory stick.
+
+We move the cursor over the song name, then We press the "options" button (the circle button on the PSP) to bring up a list of the
+song files on the memory stick. The options button is like a right-click button on a PC.
+[RIGHT-CLICK ON SONG NAME]
+
+[SONG FILE LIST]
+You will see a list of the songs on the memory stick. Select a song file and click X button.
+
+[MAIN SCREEN]
+The song is loaded and is playing.
+
+---
+
+We can stop and start playback with the START button.
+[PRESS START BUTTON TO STOP PLAYBACK]
+Playback stopped.
+[PRESS START BUTTON TO START PLAYBACK]
+Playback started again.
+
+We can rewind the song or the current pattern with the SQUARE button.
+[PRESS SQUARE BUTTON]
+
+We can set the playback mode using the SELECT button.
+[PRESS SELECT BUTTON]
+Note how playback mode cycles between the PAttern mode, Song mode and Live mode.
+[PRESS SELECT BUTTON A FEW TIMES]
+
+So to play the song sequence from the beginning, we press STOP, then change playback mode to song, 
+then press REWIND, then press START.
+[PRESS START, SELECT to SONG, SQUARE, THEN START AGAIN]
+
+---
+
+If we don't like the current drumkit, we can load a different one by moving the cursor over the 
+drumkit name, then pressing the options button.
+[PRESS OPTION BUTTON WHILE OVER DRUMKIT NAME]
+
+This brings up a list of the drumkits on the memory stick. We are going to choose a cheesy
+CASIO SK-1 drumkit.
+[SELECT THE SK-1 DRUMKIT]
+
+Now the song is playing with the new drumkit. You use whichver drumkit you prefer, or even make your own.
+
+---
+
+We can drop tracks into and out of the mix by using the track mute and solo.
+To mute a track, click on the mute button for that track.
+[PRESS MUTE ON HIHAT TRACK]
+
+Or we can solo a track by clicking on it's solo button.
+[PRESS SOLO ON BASSDRUM TRACK]
+
+We can also set the mix volume per track.
+[UNSOLO, THEN SET HIHAT to 50% VOL]
+
+---
+
+That's PXDrum in a nutshell.
+
+Future videos will show the editing features and advanced features of PXDrum.
+
+If you find it useful or would like to suggest some improvements, then email me at [show email address onscreen].
+
+Thanks for watching, and enjoy.
+

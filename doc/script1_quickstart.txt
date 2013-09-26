@@ -1,0 +1,57 @@
+PXDrum "Quick Start" (PSP version)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+[PXDRUM STARTUP SEQ]
+When PXDrum has loaded, you have a empty song.
+
+[MOVE MOUSE CURSOR]
+Move the yellow cursor using the PSP analog stick.
+
+Press CIRCLE button when the cursor is over the Song name (it 
+should say "<empty>") to bring up the File Menu.
+[RIGHT-CLICK ON SONG NAME]
+
+In the File Menu, use the up / down arrow keys to highlight the option 
+"Load Song", then press the X button.
+[PRESS X OVER "LOAD SONG" OPTION]
+
+You will be given a list of the songs in the "songs" folder of PXDrum.
+
+Use the up / down arrow keys to highlight the song "groove1.xds", then press 
+X button to select it. 
+[HIGHLIGHT GROOVE1 AND PRESS X]
+
+The song will be loaded into PXDrum, and you will be back at the PXDrum main 
+screen.
+
+Press START button to start or stop playback of the song.
+[PRESS START BUTTON]
+
+Press SELECT to change the playback mode from "Pattern" to "Song" to "Live".
+[LET PATTERN MODE PLAY A FEW TIMES, THEN SWITCH TO SONG MODE]
+
+Press SQUARE button rewind the song or pattern (depending on the playback mode).
+[PRESS SQUARE BUTTON].
+
+Press Left Shoulder Button or Right Shoulder Button keys to change the current 
+pattern to the previous/next pattern in the song or pattern list.
+[SWITCH TO PATTERN MODE, THEN PRESS RSB A FEW TIMES, THEN LSB A FEW TIMES] 
+
+Press X while cursor is over the "Volume" bar to change main volume.
+[CLICK X OVER VOL BAR]
+
+Similarly, click in the BPM bar to change playback speed.
+[CLICK X OVER BPM BAR]
+
+Press CIRCLE button over any area of the screen will bring up the options menu for the 
+object underneath the cursor (like a right mouse click).
+[RIGTH CLICK OVER A FEW AREAS]
+
+Press TRIANGLE button to bring up the main menu.
+[PRESS TRIANGLE AND SHOW MAN MENU]
+
+You should be able to figure out how most of PXDrum works by left-clicking 
+(press X button) or right-clicking (press CIRCLE button) on objects.
+
+
+See "manual.txt" for more information on using PXDrum.
