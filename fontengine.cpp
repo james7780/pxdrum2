@@ -63,13 +63,15 @@ void FontEngine::DrawGlyph(SDL_Renderer* renderer, char c, int destx, int desty)
 /// @param s				Character string to draw
 /// @param rect				Destination rectangle for the text
 /// @param clip				If true, clip the text output to the destination rect
-void FontEngine::DrawText(SDL_Renderer* renderer, const char *s, SDL_Rect& rect, bool clip)
+/// @param trans			If true, draw text as "transparent"
+void FontEngine::DrawText(SDL_Renderer* renderer, const char *s, SDL_Rect& rect, bool clip, bool trans)
 {
 	if (fontTex)
 		{
 		if (clip)
-			//SDL_SetClipRect(surface, &rect);
 			SDL_RenderSetClipRect(renderer, &rect);
+
+		SDL_SetTextureBlendMode(fontTex, trans ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_NONE); 
 			
 		int destx = rect.x;
 		const char* p = s;
@@ -81,7 +83,8 @@ void FontEngine::DrawText(SDL_Renderer* renderer, const char *s, SDL_Rect& rect,
 			}
 
 		if (clip)
-			//SDL_SetClipRect(surface, NULL);
 			SDL_RenderSetClipRect(renderer, NULL);
+
+		SDL_SetTextureBlendMode(fontTex, SDL_BLENDMODE_NONE); 
 		}
 }

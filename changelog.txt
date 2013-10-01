@@ -1,9 +1,27 @@
+28/9/2013:   (Version 2.0)
+- Major refactor: ported to SDL 2.0
+- Redesigned the GUI to work better with PC's and touch input.
+    - Window/screen size doubled to 960x544
+    - GUI textures doubled in size/resolution
+    - Drag 'n drop patterns into song
+    - Drag 'n drop pattern within a song
+    - OK/Cancel buttons added to menus/"dialogs"
+    - Text input improved
+    - Number of visible/useable patterns reduced to 20 (TODO: Pattern "bank" switch key)
+- Added "tap tempo" function
+
+
 2/5/2009:
+
   - Updated disco and reggae examples.
+
   - Grid cursor mouse and arrow movement now locked together.
 
+
 30/4/2009:
+
   - Made UI more customisable (textures.bmp now holds gui colours).
+
   - Icons for PSP XMB.
 
 24/4/2009:

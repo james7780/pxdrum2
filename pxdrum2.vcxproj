@@ -77,6 +77,7 @@
     <ClCompile Include="joymap.cpp" />
     <ClCompile Include="Renderer.cpp" />
     <ClCompile Include="song.cpp" />
+    <ClCompile Include="taptempo.cpp" />
     <ClCompile Include="texmap.cpp" />
     <ClCompile Include="writewav.cpp" />
     <ClCompile Include="xdrum.cpp" />
@@ -91,6 +92,7 @@
     <ClInclude Include="platform.h" />
     <ClInclude Include="Renderer.h" />
     <ClInclude Include="song.h" />
+    <ClInclude Include="TapTempo.h" />
     <ClInclude Include="texmap.h" />
     <ClInclude Include="trackinfo.h" />
     <ClInclude Include="transport.h" />

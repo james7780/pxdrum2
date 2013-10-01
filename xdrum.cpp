@@ -21,6 +21,7 @@
 #include "transport.h"
 #include "joymap.h"
 #include "writewav.h"
+#include "taptempo.h"
 
 #define XDRUM_VER	"2.0"
 
@@ -54,8 +55,11 @@ float cursorY = (VIEW_HEIGHT / 2);
 // Do we want to lock mouse to pattern grid cursor (PSP)?
 #define LOCK_MOUSE_TO_GRID_CURSOR
 
-// PLayback control
+// Playback control
 Transport transport;
+
+// Tap tempo stuff
+TapTempo tapTempo;
 
 // Joystick / controller button mapping
 JoyMap joyMap;
@@ -63,6 +67,7 @@ JoyMap joyMap;
 // WAV output
 short outputSample;
 WavWriter wavWriter;
+
 
 // quit/exit flag
 bool quit = false;
@@ -232,7 +237,7 @@ static void DrawSliders(unsigned char vol, unsigned char bpm)
 	dest.x = PATBOX.w;
 	dest.y += 2;
 	//m_smallFont->DrawText(m_sdlRenderer, s, dest, true);
-	renderer->DrawText(false, s, dest, true);
+	renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT);
 
 	//src = texmap[TM_PLUS_BTN];
 	dest = zones[ZONE_VOL];
@@ -259,7 +264,7 @@ static void DrawSliders(unsigned char vol, unsigned char bpm)
 	dest.x;
 	dest.y += 8;
 	//m_bigFont->DrawText(m_sdlRenderer, s, dest, true);
-	renderer->DrawText(true, s, dest, true);
+	renderer->DrawText(s, dest, Renderer::TEXT_BIGFONT);
 
 	//src = texmap[TM_TAP_BTN];
 	dest = zones[ZONE_BPM];
@@ -343,7 +348,7 @@ static void DrawTrackInfo(Song &song, DrumKit &drumkit)
 		else
 			strcpy(trackName, drumkit.drums[i].name);
 		//m_bigFont->DrawText(m_sdlRenderer, trackName, dest, true);
-		renderer->DrawText(true, trackName, dest, true);
+		renderer->DrawText(trackName, dest, Renderer::TEXT_BIGFONT | Renderer::TEXT_CLIP | Renderer::TEXT_TRANS);
 
 /*
 		// draw part of track mix vol graphic corresponding to the track mix level 
@@ -425,13 +430,11 @@ static void DrawSequenceList(Song &song)
 			sprintf(s, " %2d", i+1);
 
 		textRect = dest;
-		textRect.x += 4;
-		textRect.y += 4;
-		//m_smallFont->DrawText(m_sdlRenderer, s, textRect, false);
-		renderer->DrawText(false, s, textRect, false);
-		textRect.y += renderer->m_smallFont->GetFontHeight();
-		//m_smallFont->DrawText(m_sdlRenderer, patname, textRect, false);
-		renderer->DrawText(false, patname, textRect, false);
+		textRect.x += 3;
+		textRect.y += 3;
+		renderer->DrawText(s, textRect, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
+		textRect.y += dest.h / 2;
+		renderer->DrawText(patname, textRect, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
 		//dest.y += 8;
 		dest.x += PATBOX.w;
 		// kick out if writing over right edge
@@ -482,51 +485,15 @@ static void DrawPatternList(Song &song)
 			else
 				sprintf(s, " %2d", patNum + 1);
 			//m_smallFont->DrawText(m_sdlRenderer, s, dest, false);
-			renderer->DrawText(false, s, dest, false);
+			renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
 			dest.y += renderer->m_smallFont->GetFontHeight();
 			//m_smallFont->DrawText(m_sdlRenderer, song.patterns[patNum].name, dest, false);
-			renderer->DrawText(false, song.patterns[patNum].name, dest, false);
+			renderer->DrawText(song.patterns[patNum].name, dest, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
 			dest.y -= renderer->m_smallFont->GetFontHeight();
 			dest.x += PATBOX.w;
 			}
 		}
 
-
-/*
-	dest.x += 2;
-	dest.y += 1;
-	m_smallFont->DrawText(m_sdlRenderer, "Patterns", dest, false);
-	dest.y += 10;
-
-	// patlist must "follow' current pattern number
-	if (NO_PATTERN_INDEX != song.currentPatternIndex)
-		{
-		if (song.currentPatternIndex > song.patListScrollPos + 6)
-			song.patListScrollPos = song.currentPatternIndex - 6;
-		else if (song.currentPatternIndex < song.patListScrollPos)
-			song.patListScrollPos = song.currentPatternIndex;
-		}
-
-	for (int i = song.patListScrollPos; i < MAX_PATTERN; i++)
-		{
-		// draw pattern number/name
-		if (i == song.currentPatternIndex)
-			sprintf(s, "%2d#%s", i+1, song.patterns[i].name);
-		else
-			sprintf(s, "%2d %s", i+1, song.patterns[i].name);
-		m_smallFont->DrawText(m_sdlRenderer, s, dest, false);
-		dest.y += 8;
-		// kick out if writing over bottom
-		if (dest.y >= zones[ZONE_PATLIST].h - 10 - 8)
-			i = MAX_PATTERN;
-		}
-	
-	// draw "add pattern to song" button	
-	src = texmap[TM_ADDTOSONGBTN];
-	dest = zones[ZONE_ADDTOSONGBTN];
-	//SDL_BlitSurface(guiTex, &src, surface, &dest);
-	SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
-*/
 }
 
 
@@ -597,9 +564,9 @@ static void DrawPatternGrid(DrumPattern* pattern)
 	renderer->DrawFilledRect(dest, colour);
 	if (NULL != pattern)
 		{
-		renderer->DrawText(false, "Pattern:", dest, false);
+		renderer->DrawText("Pattern:", dest, Renderer::TEXT_SMALLFONT);
 		dest.y += renderer->m_smallFont->GetFontHeight();
-		renderer->DrawText(true, pattern->name, dest, false);
+		renderer->DrawText(pattern->name, dest, Renderer::TEXT_BIGFONT);
 		}
 
 }
@@ -618,51 +585,53 @@ static void DrawGeneralInfo(const char *songName, const char *drumkitName, Trans
 	// draw song name
 	SDL_Rect dest = zones[ZONE_SONGNAME];
 	//m_smallFont->DrawText(m_sdlRenderer, "Song:", dest, false);
-	renderer->DrawText(false, "Song:", dest, false);
+	renderer->DrawText("Song:", dest, Renderer::TEXT_SMALLFONT);
 	dest.y += renderer->m_smallFont->GetFontHeight();
 	//m_bigFont->DrawText(m_sdlRenderer, songName, dest, false);
-	renderer->DrawText(true, songName, dest, false);
+	renderer->DrawText(songName, dest, Renderer::TEXT_BIGFONT);
 	// draw drumkit name
 	dest = zones[ZONE_KITNAME];
 	//m_smallFont->DrawText(m_sdlRenderer, "Kit:", dest, false);
-	renderer->DrawText(false, "Kit:", dest, false);
+	renderer->DrawText("Kit:", dest, Renderer::TEXT_SMALLFONT);
 	dest.y += renderer->m_smallFont->GetFontHeight();
 	//m_bigFont->DrawText(m_sdlRenderer, drumkitName, dest, false);
-	renderer->DrawText(true, drumkitName, dest, false);
+	renderer->DrawText(drumkitName, dest, Renderer::TEXT_BIGFONT);
 
 	// draw shuffle / volrand options values
 	dest = zones[ZONE_OPTIONS];
 	dest.x += 4;
 	sprintf(s, "Shuffle %d", transport.shuffle);
 	//m_smallFont->DrawText(m_sdlRenderer, s, dest, false);
-	renderer->DrawText(false, s, dest, false);
+	renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT);
 	dest.y += 16;
 	sprintf(s, "Jitter  %d", transport.jitter);
 	//m_smallFont->DrawText(m_sdlRenderer, s, dest, false);
-	renderer->DrawText(false, s, dest, false);
+	renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT);
 	dest.y += 16;
 	sprintf(s, "VolRand %d ", transport.volrand);
 	//m_smallFont->DrawText(m_sdlRenderer, s, dest, false);
-	renderer->DrawText(false, s, dest, false);
+	renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT);
 
 	// transport display (mode, play/rewind, etc)
 	dest = zones[ZONE_TRANSPORT];
-	//SDL_Rect src = texmap[TM_MODE_BTN];
-	//src.w *= 3;
-	//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
+	dest.w = 64;
 	renderer->DrawButton(TM_MODE_BTN, dest);
+	dest.x += 64;
+	renderer->DrawButton(TM_PLAY_BTN, dest);
+	dest.x += 64;
+	renderer->DrawButton(TM_REWIND_BTN, dest);
 
-	dest.x += 4;
+	dest.x = zones[ZONE_TRANSPORT].x + 4;
 	dest.y += 20;
 	if (Transport::PM_PATTERN == transport.mode)
 		//m_smallFont->DrawText(m_sdlRenderer, "Pattern", dest, false);
-		renderer->DrawText(false, "Pattern", dest, false);
+		renderer->DrawText("Pattern", dest, Renderer::TEXT_SMALLFONT);
 	else if (Transport::PM_SONG == transport.mode)
 		//m_smallFont->DrawText(m_sdlRenderer, " Song", dest, false);
-		renderer->DrawText(false, " Song", dest, false);
+		renderer->DrawText(" Song", dest, Renderer::TEXT_SMALLFONT);
 	else
 		//m_smallFont->DrawText(m_sdlRenderer, " Live", dest, false);
-		renderer->DrawText(false, " Live", dest, false);
+		renderer->DrawText(" Live", dest, Renderer::TEXT_SMALLFONT);
 
 	if (transport.playing)
 		{
@@ -732,9 +701,7 @@ static int DoOptionsMenu()
 	menu.AddItem(2, "Jitter (ms)", "0|5|10|15", selectedJitterOption, "!!! NOT IMPLEMENTED !!!"); // Randomise playback timing");	
 	menu.AddItem(3, "VolRand (%)", "0|10|20|30|40|50", selectedVolrandOption, "Randomise hit volume");	
 	menu.AddItem(4, "Flash BG on Beat", "No|Yes", selectedFlashOption, "Flash pattern grid background on the beat");	
-	SDL_Rect r1;
-	SetSDLRect(r1, 16, 16, VIEW_WIDTH - 32, VIEW_HEIGHT - 32);
-	int selectedId = menu.DoMenu(renderer, &r1, "Options Menu", 0);
+	int selectedId = menu.DoMenu(renderer, NULL, "Options Menu", 0);
 	
 	// Update shuffle and jitter from menu item data
 	if (selectedId > -1)
@@ -759,9 +726,7 @@ static int DoVolBPMMenu(int initialSelection)
 	Menu menu;
 	menu.AddItem(1, "Main Vol (%)", "Mute|10|20|30|40|50|60|70|80|90|100", selectedVolOption, "Set main volume");	
 	menu.AddItem(2, "BPM", "60|70|80|90|100|110|120|130|140|150|160|170|180", selectedBPMOption, "Set playback speed in BPM");	
-	SDL_Rect r1;
-	SetSDLRect(r1, 16, 16, VIEW_WIDTH - 32, VIEW_HEIGHT - 32);
-	int selectedId = menu.DoMenu(renderer, &r1, "Volume/BPM Menu", initialSelection);
+	int selectedId = menu.DoMenu(renderer, NULL, "Volume/BPM Menu", initialSelection);
 	
 	// Update shuffle and jitter from menu item data
 	if (selectedId > -1)
@@ -785,9 +750,7 @@ static int DoFileMenu(int initialSelection)
 	menu.AddItem(3, "Load DrumKit", "Load a different drumkit");
 	menu.AddItem(4, "Record to WAV", "Record next play to WAV file");
 
-	SDL_Rect r1;
-	SetSDLRect(r1, 16, 16, VIEW_WIDTH - 32, VIEW_HEIGHT - 32);
-	int selectedId = menu.DoMenu(renderer, &r1, "File Menu", initialSelection);
+	int selectedId = menu.DoMenu(renderer, NULL, "File Menu", initialSelection);
 	// process result
 	switch (selectedId)
 		{
@@ -873,9 +836,8 @@ static int DoTrackMenu(int track)
 		menu.AddItem(6, "Solo track", "Solo this track");
 	else
 		menu.AddItem(6, "Unsolo track", "Switch solo mode off");
-	SDL_Rect r1;
-	SetSDLRect(r1, 16, 16, VIEW_WIDTH - 32, VIEW_HEIGHT - 32);
-	int selectedId = menu.DoMenu(renderer, &r1, menuTitle, 0);
+
+	int selectedId = menu.DoMenu(renderer, NULL, menuTitle, 0);
 	// process result
 	switch (selectedId)
 		{
@@ -939,9 +901,8 @@ static int DoPatternMenu()
 	menu.AddItem(3, "Clear pattern", "Remove all events in this pattern");
 	menu.AddItem(4, "Rename pattern", "Change name of the pattern");
 	menu.AddItem(5, "Insert into song", "Insert current pattern into song");
-	SDL_Rect r1;
-	SetSDLRect(r1, 16, 16, VIEW_WIDTH - 32, VIEW_HEIGHT - 32);
-	int selectedId = menu.DoMenu(renderer, &r1, menuTitle, 0);
+
+	int selectedId = menu.DoMenu(renderer, NULL, menuTitle, 0);
 	// process result
 	switch (selectedId)
 		{
@@ -985,9 +946,8 @@ static int DoSequenceMenu()
 	menu.AddItem(1, "Insert pattern", "Insert current pattern into song");
 	menu.AddItem(2, "Remove pattern", "Remove pattern from the song");
 	menu.AddItem(3, "Go to position", "1|11|21|31|41|51|61|71|81|91", currentPosOption, "Set current song position");	
-	SDL_Rect r1;
-	SetSDLRect(r1, 16, 16, VIEW_WIDTH - 32, VIEW_HEIGHT - 32);
-	int selectedId = menu.DoMenu(renderer, &r1, "Sequence Menu", 0);
+
+	int selectedId = menu.DoMenu(renderer, NULL, "Sequence Menu", 0);
 	// process result
 	switch (selectedId)
 		{
@@ -1022,10 +982,11 @@ static int DoHelpMenu()
 								"RSB for next pattern";
 #else
 			const char* text = 	"SPACE to stop/start playing\n" \
-								"R to rewind\n" \
+								"R, B or BACKSPACE to rewind\n" \
 								"M to change mode\n" \
-								"PGUP for previous pattern\n" \
-								"PGDOWN for next pattern";
+								"PGUP or [ for previous pattern\n" \
+								"PGDOWN or ] for next pattern\n" \
+								"T for tap tempo";
 #endif
 	DoMessage(renderer, "Help - Keys / Buttons", text, false);
 	//SDL_ShowSimpleMessageBox(0, "Help - Keys/Buttons", text, sdlWindow);							
@@ -1043,8 +1004,9 @@ static int DoMainMenu()
 	menu.AddItem(5, "Options Menu", "Display the options menu");
 	menu.AddItem(6, "Help Menu", "Display the help menu");
 	menu.AddItem(7, "Quit", "Exit this program");
+
 	SDL_Rect r1;
-	SetSDLRect(r1, 16, 16, VIEW_WIDTH - 32, VIEW_HEIGHT - 32);
+	SetSDLRect(r1, VIEW_WIDTH / 4, 16, VIEW_WIDTH / 2, VIEW_HEIGHT - 32);
 	int selectedId = menu.DoMenu(renderer, &r1, "Main Menu", 0);
 	// process result
 	switch (selectedId)
@@ -1132,7 +1094,7 @@ static int DoNoteMenu(int track, int step)
 	menu.AddItem(3, "Repeat Count", "0|1|2|3|4|5|6|7", selectedCountOption, "Number of repeat notes");
 	menu.AddItem(4, "Repeat Space", "1|2|3|4", selectedSpacingOption, "Steps between repeat notes");
 	SDL_Rect r1;
-	SetSDLRect(r1, 64, 16, VIEW_WIDTH - 72, VIEW_HEIGHT - 32);
+	SetSDLRect(r1, 64, 16, VIEW_WIDTH - 128, 0);
 	int selectedId = menu.DoMenu(renderer, &r1, menuTitle, 0);
 	
 	// Update options from menu item data
@@ -1393,6 +1355,17 @@ void ProcessKeyPress(SDL_Scancode sym, int zone)
 				SyncPatternPointer();
 			DrawAll();	
 			break;
+		case SDL_SCANCODE_T:
+			{
+			// Tap tempo
+			int tapBPM = tapTempo.AddTap();
+			if (tapBPM > 20 && tapBPM < 251)
+				{
+				song.BPM = tapBPM;
+				DrawSliders(song.vol, song.BPM);
+				}
+			}
+			break;
 		case SDL_SCANCODE_ESCAPE :
 		case SDL_SCANCODE_MENU :
 		case SDL_SCANCODE_RGUI :
@@ -1445,12 +1418,19 @@ void ProcessLeftClick(int x, int y)
 			// If [+] or [-] button, increment or decrement BPM
 			// If on bpm-meter, set bpm (50 to 250)
 			if (x0 < PATBOX.w)
+				{
 				song.BPM -= 1;
+				}
 			else if (x0 >= (rect.w - PATBOX.w))
+				{
 				song.BPM += 1;
+				}
 			else if (x0 >= PATBOX.w && x0 < (rect.w - PATBOX.w))
-				song.BPM = x0 - PATBOX.w + 50;
-				
+				{
+				int tapBPM = tapTempo.AddTap();
+				if (tapBPM > 20 && tapBPM < 251)
+					song.BPM = tapBPM;
+				}
 			DrawSliders(song.vol, song.BPM);
 			}		
 			break;
@@ -2206,6 +2186,7 @@ int main(int argc, char *argv[])
 						}
 					draggingPattern = false;
 					draggedSongItem = -1;
+					SDL_SetCursor(NULL);
 					SDL_ShowCursor(SDL_DISABLE);
 					}
 					break;

@@ -22,11 +22,6 @@
 
 extern JoyMap joyMap;
 
-// TODO : replace with those in Renderer
-//SDL_Colour m_bgColour = { 0, 0, 0, 255 };
-//SDL_Colour m_borderColour = { 255, 255, 255, 255 };
-//SDL_Colour m_separatorColour = { 0, 255, 255, 255 };
-//SDL_Colour m_highlightColour = { 255, 255, 0, 255 };
 
 ///////////////////////////////////////////////////////////////////////////////
 // MenuItem class
@@ -160,29 +155,50 @@ extern void SetSDLRect(SDL_Rect& rect, int x, int y,int w, int h);
 
 /// Display the menu and get chosen item from user
 /// @return		id of item selected, or -1 if cancelled
-int Menu::DoMenu(Renderer *renderer, SDL_Rect* extents, const char* title, int initialSelection)
+int Menu::DoMenu(Renderer *renderer, SDL_Rect* extentsIn, const char* title, int initialSelection)
 {
-	if (!renderer || !title)
+	if (!renderer || !title || 0 == m_numItems)
 		{
 		printf("Error: DoMenu - bad parameter!\n");
 		return -1;
 		}
 
-	// default extents if not supplied
-	if (NULL == extents)
-		extents = &m_extents;
+	// Fade background
+	SDL_Colour fadeColour;
+	SetSDLColour(fadeColour, 0, 0, 0, 192);
+	renderer->Fade(fadeColour);
+
+	int itemHeight = (3 * renderer->m_bigFont->GetFontHeight()) / 2;
+
+	// Calculate extents if not supplied
+	SDL_Rect extents;
+	if (extentsIn)
+		{
+		extents = *extentsIn;
+		}
+	else
+		{
+		int border = VIEW_WIDTH / 20;
+		SetSDLRect(extents, border, border, VIEW_WIDTH - border * 2, 0);
+		}
+
+	// Also calculate height automatically if set to 0
+	if (0 == extents.h)
+		extents.h = itemHeight * (m_numItems + 4);
+
+	int contentWidth = extents.w - (MENU_TITLE_X*2);
 
 	SDL_Rect okButtonRect, cancelButtonRect;
-	SetSDLRect(okButtonRect, extents->w - MENU_TITLE_X - 48 * 2 - 8, 6, 48, 48);
-	SetSDLRect(cancelButtonRect, extents->w - MENU_TITLE_X - 48, 6, 48, 48);
+	SetSDLRect(okButtonRect, extents.x + extents.w - MENU_TITLE_X - 48 * 2 - 8, extents.y + 6, 48, 48);
+	SetSDLRect(cancelButtonRect, extents.x + extents.w - MENU_TITLE_X - 48, extents.y + 6, 48, 48);
 
 	// handle initial selection
 	int selected = 0;
 	if (initialSelection >= 0 && initialSelection < m_numItems)
 		selected = initialSelection;
 
-	int itemHeight = (3 * renderer->m_bigFont->GetFontHeight()) / 2;
-	SDL_Rect rect;
+	SDL_ShowCursor(SDL_ENABLE);
+
 	SDL_Event event;
 	unsigned short keyCode;
 	//SDL_ShowCursor(SDL_ENABLE);
@@ -275,7 +291,7 @@ int Menu::DoMenu(Renderer *renderer, SDL_Rect* extents, const char* title, int i
 						else
 							{
 							// Select item, or change item option?
-							int clickedItem = (event.motion.y - MENU_ITEM_START_Y) / itemHeight;
+							int clickedItem = (event.motion.y - extents.y - MENU_ITEM_START_Y) / itemHeight;
 							if (clickedItem > -1 && clickedItem < m_numItems)
 								{
 								selected = clickedItem;
@@ -348,33 +364,33 @@ int Menu::DoMenu(Renderer *renderer, SDL_Rect* extents, const char* title, int i
 			
 		// Redraw screen
 		// Clear menu background & draw border
-		SetSDLRect(rect, 0, 0, extents->w, extents->h);
+		SDL_Rect rect = extents;
 		renderer->DrawFilledRect(rect, renderer->m_bgColour);
 		rect.h = 4;
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
-		rect.y = extents->h - 4;
+		rect.y += extents.h - 4;
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
-		SetSDLRect(rect, 0, 0, 4, extents->h);
+		SetSDLRect(rect, extents.x, extents.y, 4, extents.h);
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
-		rect.x = extents->w - 4;
+		rect.x = extents.x + extents.w - 4;
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
 		
 		// Draw title
-		SetSDLRect(rect, MENU_TITLE_X, 8, extents->w - 16, itemHeight);
-		renderer->DrawText(true, title, rect, false);
+		SetSDLRect(rect, extents.x + MENU_TITLE_X, extents.y + 8, contentWidth, itemHeight);
+		renderer->DrawText(title, rect, Renderer::TEXT_BIGFONT);
 
 		renderer->DrawButton(TM_OK_BTN, okButtonRect);
 		renderer->DrawButton(TM_CANCEL_BTN, cancelButtonRect);
 
-		SetSDLRect(rect, MENU_TITLE_X, 8 + itemHeight,  extents->w - (MENU_TITLE_X*2), 2);
+		SetSDLRect(rect, extents.x + MENU_TITLE_X, extents.y + 8 + itemHeight, contentWidth, 2);
 		renderer->DrawFilledRect(rect, renderer->m_separatorColour);
 
 		// Draw items
 		for (int i = 0; i < m_numItems; i++)
 			{
 			// draw item text
-			SetSDLRect(rect, MENU_ITEM_X, MENU_ITEM_START_Y + (i * itemHeight), 0, 0);
-			renderer->DrawText(true, m_menuItems[i].GetItemText(), rect, false);
+			SetSDLRect(rect, extents.x + MENU_ITEM_X, extents.y + MENU_ITEM_START_Y + (i * itemHeight), 0, 0);
+			renderer->DrawText(m_menuItems[i].GetItemText(), rect, Renderer::TEXT_BIGFONT);
 
 			// if this is an option item, then draw currently selected option
 			// with arrow markers before and after the text
@@ -388,25 +404,25 @@ int Menu::DoMenu(Renderer *renderer, SDL_Rect* extents, const char* title, int i
 				optionText[len] = 32;
 				optionText[len+1] = 127;
 				optionText[len+2] = 0;		// terminate
-				SetSDLRect(rect, VIEW_WIDTH/2, MENU_ITEM_START_Y + (i * itemHeight), 0, 0);
-				renderer->DrawText(true, optionText, rect, false);
+				SetSDLRect(rect, VIEW_WIDTH/2, extents.y + MENU_ITEM_START_Y + (i * itemHeight), 0, 0);
+				renderer->DrawText(optionText, rect, Renderer::TEXT_BIGFONT);
 				}
 			}
 	
 		// Draw description of selected item
 		if (selected >= 0 && selected < m_numItems)
 			{
-			SetSDLRect(rect, MENU_TITLE_X, extents->h - itemHeight, 0, 0);
-			renderer->DrawText(true, m_menuItems[selected].GetDescription(), rect, false);
+			SetSDLRect(rect, extents.x + MENU_TITLE_X, extents.y + extents.h - itemHeight, 0, 0);
+			renderer->DrawText(m_menuItems[selected].GetDescription(), rect, Renderer::TEXT_BIGFONT);
 			}
 
 		// Draw selection highlight
-		int y1 = MENU_ITEM_START_Y + (selected * itemHeight) - 4;
-		SetSDLRect(rect, MENU_TITLE_X, y1, extents->w - (MENU_TITLE_X*2), itemHeight - 1);
+		int y1 = extents.y + MENU_ITEM_START_Y + (selected * itemHeight) - 4;
+		SetSDLRect(rect, extents.x + MENU_TITLE_X, y1, contentWidth, itemHeight - 1);
 		renderer->DrawRect(rect, renderer->m_highlightColour);
 
-		// Draw mouse cursor
-		renderer->DrawCursor(mx, my, false);
+		//// Draw mouse cursor
+		//renderer->DrawCursor(mx, my, false);
 			
 		//SDL_RenderPresent(renderer);
 		renderer->Blit();
@@ -420,7 +436,7 @@ int Menu::DoMenu(Renderer *renderer, SDL_Rect* extents, const char* title, int i
 		selectedId = m_menuItems[selected].GetId();
 
 	//printf("DoMenu: selected id = %d\n", selectedId);
-	//SDL_ShowCursor(SDL_DISABLE);
+	SDL_ShowCursor(SDL_DISABLE);
 		
 	return selectedId;
 }
@@ -450,24 +466,30 @@ int Menu::GetItemSelectedOption(int id)
 
 /// Show message to user
 /// @param title		Caption (title) text
-/// @param prompt		Text to show user
+/// @param msg			Text to show user (can be \n separated list of items)
 /// @param confirm		If true, then act like a confirm dialog - confirm user action (eg delete, overwrite) 
-bool DoMessage(Renderer *renderer, const char *title, const char *prompt, bool confirm)
+bool DoMessage(Renderer *renderer, const char *title, const char *msg, bool confirm)
 {
-	if (!renderer || !prompt)
+	if (!renderer || !msg)
 		{
 		printf("Error: DoMessage - bad parameter!\n");
 		return false;
 		}
 
+	// Fade background
+	SDL_Colour fadeColour;
+	SetSDLColour(fadeColour, 0, 0, 0, 128);
+	renderer->Fade(fadeColour);
+
+	int border = VIEW_WIDTH / 20;
 	SDL_Rect extents;
-	SetSDLRect(extents, 32, 32, VIEW_WIDTH - 64, VIEW_HEIGHT - 64);
+	SetSDLRect(extents, border, border, VIEW_WIDTH - border * 2, VIEW_HEIGHT - border * 2);
 
 	// split input string into lines
 	char *textLine[20];
 	int numLines = 0;
 	char s[2000];
-	strcpy(s, prompt);
+	strcpy(s, msg);
 	//printf("Text = %s\n", s);
 	char *nextLine = strtok(s, "\n");
 	while (nextLine)
@@ -478,6 +500,12 @@ bool DoMessage(Renderer *renderer, const char *title, const char *prompt, bool c
 		}
 	// mark end of text lines
 	textLine[numLines] = 0;
+
+	SDL_Rect okButtonRect, cancelButtonRect;
+	SetSDLRect(okButtonRect, extents.x + extents.w - MENU_TITLE_X - 48 * 2 - 8, extents.y + 6, 48, 48);
+	SetSDLRect(cancelButtonRect, extents.x + extents.w - MENU_TITLE_X - 48, extents.y + 6, 48, 48);
+
+	SDL_ShowCursor(SDL_ENABLE);
 
 	bool confirmYes = false;
 
@@ -518,6 +546,21 @@ bool DoMessage(Renderer *renderer, const char *title, const char *prompt, bool c
 					else if (SDLK_ESCAPE == event.key.keysym.sym)
 						done = true;
 					break;
+				case SDL_MOUSEBUTTONDOWN:
+					if (1 == event.button.button)		// Left mouse button
+						{
+						Sint32 mx = event.motion.x;
+						Sint32 my = event.motion.y;
+						// Clicked OK or Cancel?
+						if (my < (okButtonRect.y + okButtonRect.h))
+							{
+							if (mx > okButtonRect.x && mx < okButtonRect.x + okButtonRect.w)
+								confirmYes = true;
+							else if (mx > cancelButtonRect.x && mx < cancelButtonRect.x + cancelButtonRect.w)
+								done = true;
+							}
+						}
+					break;
 				} // end switch
 			} // wend pollevent
 
@@ -525,45 +568,48 @@ bool DoMessage(Renderer *renderer, const char *title, const char *prompt, bool c
 			done = true;
 
 		// Redraw screen
-		// Clear menu background & draw border
-		SetSDLRect(rect, 0, 0, extents.w, extents.h);
+		// Clear message background & draw border
+		rect = extents;
 		renderer->DrawFilledRect(rect, renderer->m_bgColour);
 		rect.h = 4;
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
-		rect.y = extents.h - 4;
+		rect.y = extents.y + extents.h - 4;
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
-		SetSDLRect(rect, 0, 0, 4, extents.h);
+		SetSDLRect(rect, extents.x, extents.y, 4, extents.h);
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
-		rect.x = extents.w - 4;
+		rect.x = extents.x + extents.w - 4;
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
-		
+
+		int contentWidth = extents.w - (MENU_TITLE_X*2);
+				
 		// Draw title
-		SetSDLRect(rect, MENU_TITLE_X, 8,  extents.w - 16, itemHeight);
-		renderer->DrawText(true, title, rect, false);
+		SetSDLRect(rect, extents.x + MENU_TITLE_X, extents.y + 8, contentWidth, itemHeight);
+		renderer->DrawText(title, rect, Renderer::TEXT_BIGFONT);
 
-		SetSDLRect(rect, MENU_TITLE_X, 4 + itemHeight,  extents.w - (MENU_TITLE_X*2), 2);
+		SetSDLRect(rect, extents.x + MENU_TITLE_X, extents.y + 8 + itemHeight, contentWidth, 2);
 		renderer->DrawFilledRect(rect, renderer->m_separatorColour);
-		
-		// Draw text prompt
-		SetSDLRect(rect, MENU_ITEM_X, MENU_ITEM_START_Y,  extents.w - 16, itemHeight);
-		renderer->DrawText(true, prompt, rect, false);
 
-		int y = MENU_ITEM_START_Y;
+		// Draw OK/Cancel buttons
+		renderer->DrawButton(TM_OK_BTN, okButtonRect);
+		renderer->DrawButton(TM_CANCEL_BTN, cancelButtonRect);
+		
+		// Draw message items
+		int y = extents.y + MENU_ITEM_START_Y;
 		for (int i = 0; i < numLines; i++)
 			{
-			SetSDLRect(rect, MENU_ITEM_X, y,  extents.w - 16, itemHeight);
-			renderer->DrawText(true, textLine[i], rect, false);
+			SetSDLRect(rect, extents.x + MENU_ITEM_X, y, contentWidth, itemHeight);
+			renderer->DrawText(textLine[i], rect, Renderer::TEXT_BIGFONT);
 			y += itemHeight;
 			}
 
 		// Draw instructions
-		SetSDLRect(rect, MENU_TITLE_X, extents.h - itemHeight, 0, 0);
+		SetSDLRect(rect, extents.x + MENU_TITLE_X, extents.y + extents.h - itemHeight, 0, 0);
 		if (confirm)
 			{
 #ifdef PSP				
 			font->DrawText(surface, "X = Yes, ^ = No", rect, false);
 #else
-			renderer->DrawText(true, "ENTER = Yes, ESC = No", rect, false);
+			renderer->DrawText("ENTER = Yes, ESC = No", rect, Renderer::TEXT_BIGFONT);
 #endif
 			}
 		else
@@ -571,7 +617,7 @@ bool DoMessage(Renderer *renderer, const char *title, const char *prompt, bool c
 #ifdef PSP				
 			font->DrawText(surface, "Press X to continue", rect, false);
 #else
-			renderer->DrawText(true, "Press ENTER to continue", rect, false);
+			renderer->DrawText("Press ENTER to continue", rect, Renderer::TEXT_BIGFONT);
 #endif
 			}
 
@@ -579,6 +625,8 @@ bool DoMessage(Renderer *renderer, const char *title, const char *prompt, bool c
 		renderer->Blit();
 		SDL_Delay(20);					// gives time to other threads
 		} // wend done
+
+	SDL_ShowCursor(SDL_DISABLE);
 	
 	return confirmYes;	
 }
@@ -601,30 +649,42 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 		return false;
 
 	// Load the virtual keyboard bitmaps
-	SDL_Surface* keyboardImg = SDL_LoadBMP("gfx/vk_compact.bmp");
+	SDL_Surface* keyboardImg = SDL_LoadBMP("gfx/vk_medium.bmp");
 	if (!keyboardImg)
 		{
-		printf("Error loading keyboard image %s!\n", "gfx/vk_compact.bmp");
+		printf("Error loading keyboard image %s!\n", "gfx/vk_medium.bmp");
 		return false;
 		}
 
-	SDL_Surface* keyboardHiliteImg = SDL_LoadBMP("gfx/vk_compact_hilite.bmp");
+	SDL_Surface* keyboardHiliteImg = SDL_LoadBMP("gfx/vk_medium_hilite.bmp");
 	if (!keyboardHiliteImg)
 		{
-		printf("Error loading keyboard image %s!\n", "gfx/vk_compact_hilite.bmp");
+		printf("Error loading keyboard image %s!\n", "gfx/vk_medium_hilite.bmp");
 		return false;
 		}
 
 	SDL_Texture *keyTexture = SDL_CreateTextureFromSurface(renderer->m_sdlRenderer, keyboardImg);
 	SDL_Texture *keyTextureHilite = SDL_CreateTextureFromSurface(renderer->m_sdlRenderer, keyboardHiliteImg);
 
-	int charPos = (int)strlen(text);
-	
-	int vkPos = 0;				// posn in virtual kb
+	// Virtual keyboard extents/position
+	int vkWidth = keyboardImg->w;
+	int vkHeight = keyboardImg->h;
+	int vkKeyWidth = vkWidth / 10;
+	int vkKeyHeight = vkHeight / 4;
+	SDL_Rect vkDestRect;
+	SetSDLRect(vkDestRect, (VIEW_WIDTH - vkWidth) / 2, VIEW_HEIGHT / 2, vkWidth, vkHeight);
 
+	SDL_Rect okButtonRect, cancelButtonRect;
+	SetSDLRect(okButtonRect, VIEW_WIDTH - MENU_TITLE_X - 48 * 2 - 8, 6, 48, 48);
+	SetSDLRect(cancelButtonRect, VIEW_WIDTH - MENU_TITLE_X - 48, 6, 48, 48);
+
+	SDL_ShowCursor(SDL_ENABLE);
+
+	int charPos = (int)strlen(text);
+	int vkPos = 0;				// posn in virtual kb
 	int itemHeight = (3 * renderer->m_bigFont->GetFontHeight()) / 2;
-	
 	int counter = 0;
+	SDL_Rect src;
 	SDL_Rect rect;
 	SDL_Event event;
 	unsigned short keyCode;
@@ -665,37 +725,6 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 					else if (SDLK_DOWN == keyPressed)
 						dy = 1;
 					keyCode = 0;		// prevent adding to text
-/*					
-					//if(event.jbutton.button == 0) // TRIANGLE
-					//	escapePressed = true;
-					switch (event.jbutton.button)
-						{
-						case 0 : 			// TRIANGLE
-							escapePressed = true;
-							break;
-						case 2 : 			// CROSS
-							addChar = true;
-							break;
-						case 3 : 			// SQUARE
-							backspace = true;
-							break;
-						case 11 : 			// START
-							done = true;
-							break;
-						case 7 : 	 		// LEFT
-							dx = -1;
-							break;
-						case 8 :			// UP
-							dy = -1;
-							break;
-						case 9 :			// RIGHT
-							dx = 1;
-							break;
-						case 6 :     		// DOWN
-							dy = 1;						
-							break;
-						}
-*/
 					}
 					break;
 				case SDL_KEYDOWN:
@@ -710,19 +739,7 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 						backspace = true;
 					else if (SDLK_ESCAPE == keyPressed)
 						escapePressed = true;
-#ifdef PSP
-					// PSP has no keyboard
-					else if (SDLK_SPACE == keyPressed)
-						addChar = true;
-					else if (SDLK_LEFT == keyPressed)
-						dx = -1;
-					else if (SDLK_RIGHT == keyPressed)
-						dx = 1;
-					else if (SDLK_UP == keyPressed)
-						dy = -1;
-					else if (SDLK_DOWN == keyPressed)
-						dy = 1;
-#else
+
 					if ((keyPressed >= SDLK_0 && keyPressed <= SDLK_9) ||
 							 (keyPressed >= SDLK_a && keyPressed <= SDLK_z) ||
 							 keyPressed == SDLK_UNDERSCORE ||
@@ -735,9 +752,38 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 						{
 						keyCode = 0;		// non-valid key typed
 						}
-
-#endif
 					}
+					break;
+				case SDL_MOUSEBUTTONDOWN:
+					if (1 == event.button.button)		// Left mouse button
+						{
+						Sint32 mx = event.motion.x;
+						Sint32 my = event.motion.y;
+						// Clicked OK or Cancel?
+						if (my < (okButtonRect.y + okButtonRect.h))
+							{
+							if (mx > okButtonRect.x && mx < okButtonRect.x + okButtonRect.w)
+								done = true;
+							else if (mx > cancelButtonRect.x && mx < cancelButtonRect.x + cancelButtonRect.w)
+								escapePressed = true;
+							}
+						else if (mx > vkDestRect.x && mx < vkDestRect.x + vkDestRect.w &&
+								my > vkDestRect.y && my < vkDestRect.y + vkDestRect.h)
+							{
+							// Clicked on virtual key
+							int x0 = (mx - vkDestRect.x) / vkKeyWidth;
+							int y0 = (my - vkDestRect.y) / vkKeyHeight;
+							vkPos = x0 + (y0 * 10);
+							addChar = true;
+
+							// Flash highlight clicked virtual button
+							SetSDLRect(src, x0*vkKeyWidth, y0*vkKeyHeight, vkKeyWidth, vkKeyHeight);
+							SetSDLRect(rect, vkDestRect.x + x0*vkKeyWidth, vkDestRect.y + y0*vkKeyHeight, vkKeyWidth, vkKeyHeight);
+							SDL_RenderCopy(renderer->m_sdlRenderer, keyTextureHilite, &src, &rect);
+							renderer->Blit();
+							SDL_Delay(20);
+							}
+						}
 					break;
 				} // end switch
 			} // wend pollevent
@@ -746,19 +792,13 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 		if (escapePressed)
 			break;
 
-		// update current virtual keyboard grid position
-		int x = vkPos % 10;
-		int y = vkPos / 10;
-		if (1 == dx && x < 9)
-			x++;
-		else if (-1 == dx && x > 0)
-			x--;
-		if (1 == dy && y < 3)
-			y++;
-		else if (-1 == dy && y > 0)
-			y--;
-		vkPos = (10 * y) + x;
-		
+		// Validate if done
+		if (done)
+			{
+			if (0 == text[0])
+				done = false;			// No empty names please
+			}
+
 		if (addChar)
 			{
 			// append currently highlighted char to the text string
@@ -767,7 +807,7 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 				{
 				backspace = true;
 				}
-			else
+			else if (charPos < (maxlen - 1))
 				{
 				text[charPos++] = mappedChar;
 				text[charPos] = 0;
@@ -776,10 +816,14 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 		else if (keyCode > 0)
 			{
 			// Add typed keycode
-			text[charPos++] = (char)keyCode;
-			text[charPos] = 0;
+			if (charPos < (maxlen - 1))
+				{
+				text[charPos++] = (char)keyCode;
+				text[charPos] = 0;
+				}
 			}
-		else if (backspace)
+
+		if (backspace)
 			{
 			// remove previous char
 			if (charPos > 0)
@@ -795,7 +839,7 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 		renderer->DrawFilledRect(rect, renderer->m_bgColour);
 		rect.h = 4;
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
-		rect.y = VIEW_WIDTH - 4;
+		rect.y = VIEW_HEIGHT - 4;
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
 		SetSDLRect(rect, 0, 0, 4, VIEW_HEIGHT);
 		renderer->DrawFilledRect(rect, renderer->m_borderColour);
@@ -804,14 +848,18 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 		
 		// Draw text prompt
 		SetSDLRect(rect, 8, 8,  VIEW_WIDTH - 16, itemHeight);
-		renderer->DrawText(true, prompt, rect, false);
+		renderer->DrawText(prompt, rect, Renderer::TEXT_BIGFONT);
+
+		// Draw OK/Cancel buttons
+		renderer->DrawButton(TM_OK_BTN, okButtonRect);
+		renderer->DrawButton(TM_CANCEL_BTN, cancelButtonRect);
 
 		// Draw input text
 		char s[200];
 		strcpy(s, text);
 		strcat(s, "_");
 		SetSDLRect(rect, 8, 40,  VIEW_WIDTH - 16, itemHeight);
-		renderer->DrawText(true, s, rect, false);
+		renderer->DrawText(s, rect, Renderer::TEXT_BIGFONT);
 
 		// Draw instructions
 		SetSDLRect(rect, 8, VIEW_HEIGHT - itemHeight, 0, 0);
@@ -820,7 +868,7 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 #ifdef PSP				
 			font->DrawText(screen, "Use DPAD to select char, X to input char.", rect, false);
 #else
-			renderer->DrawText(true, "Use arrows to select char, SPACE to input char.", rect, false);
+			renderer->DrawText("Type or click letters.", rect, Renderer::TEXT_BIGFONT);
 #endif
 			}
 		else
@@ -828,26 +876,27 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 #ifdef PSP				
 			font->DrawText(screen, "Press START to finish, TRIANGLE to cancel.", rect, false);
 #else
-			renderer->DrawText(true, "Press ENTER to finish, ESC to cancel.", rect, false);
+			renderer->DrawText("Press ENTER to finish, ESC to cancel.", rect, Renderer::TEXT_BIGFONT);
 #endif
 			}
 
 
 		// draw virtual keyboard
 		SDL_Rect src;
-		SetSDLRect(src, 0, 0, 320, 96);
-		SetSDLRect(rect, 80, 128, 320, 96);
-		SDL_RenderCopy(renderer->m_sdlRenderer, keyTexture, &src, &rect);
+		SetSDLRect(src, 0, 0, keyboardImg->w, keyboardImg->h);
+		SDL_RenderCopy(renderer->m_sdlRenderer, keyTexture, &src, &vkDestRect);
 
-		SetSDLRect(src, x*32, y*24, 32, 24);
-		SetSDLRect(rect, 80 + x*32, 128 + y*24, 32, 24);
-		SDL_RenderCopy(renderer->m_sdlRenderer, keyTextureHilite, &src, &rect);
+		//SetSDLRect(src, x*vkKeyWidth, y*vkKeyHeight, vkKeyWidth, vkKeyHeight);
+		//SetSDLRect(rect, vkDestRect.x + x*vkKeyWidth, vkDestRect.y + y*vkKeyHeight, vkKeyWidth, vkKeyHeight);
+		//SDL_RenderCopy(renderer->m_sdlRenderer, keyTextureHilite, &src, &rect);
 	
 		//SDL_RenderPresent(renderer);
 		renderer->Blit();
 		SDL_Delay(20);
 		counter++;
 		} // wend done
+
+	SDL_ShowCursor(SDL_DISABLE);
 
 	// Tidy up
 	SDL_DestroyTexture(keyTexture);
@@ -857,7 +906,7 @@ bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen)
 }
 
 /// Browse for file in the specified folder
-/// @param promtp		User prompt
+/// @param prompt		User prompt
 /// @param folder		The folder to select a file from
 /// @param filename		The input filename, also output filename
 /// @return				false if cancelled, else true
@@ -920,6 +969,9 @@ bool DoFileSelect(Renderer *renderer, const char* prompt, const char* folder, ch
 		closedir(d);
 		}
 #endif
+
+	SDL_Rect cancelButtonRect;
+	SetSDLRect(cancelButtonRect, VIEW_WIDTH - MENU_TITLE_X - 48, 6, 48, 48);
 
 	SDL_ShowCursor(SDL_ENABLE);
 	int currentItem = 0;				// posn in list
@@ -987,12 +1039,23 @@ bool DoFileSelect(Renderer *renderer, const char* prompt, const char* folder, ch
 				case SDL_MOUSEBUTTONDOWN:
 					if (1 == event.button.button)		// Left mouse button
 						{
-						// Select item, or change item option?
-						int clickedItem = scrollPos + (event.motion.y - MENU_ITEM_START_Y) / itemHeight;
-						if (clickedItem > -1 && clickedItem < numFiles)
+						Sint32 mx = event.motion.x;
+						Sint32 my = event.motion.y;
+						// Clicked Cancel?
+						if (my < (cancelButtonRect.y + cancelButtonRect.h))
 							{
-							currentItem = clickedItem;
-							done = true;
+							if (mx > cancelButtonRect.x && mx < cancelButtonRect.x + cancelButtonRect.w)
+								escapePressed = true;
+							}
+						else
+							{
+							// Select item, or change item option?
+							int clickedItem = scrollPos + (event.motion.y - MENU_ITEM_START_Y) / itemHeight;
+							if (clickedItem > -1 && clickedItem < numFiles)
+								{
+								currentItem = clickedItem;
+								done = true;
+								}
 							}
 						}
 					break;
@@ -1029,10 +1092,13 @@ bool DoFileSelect(Renderer *renderer, const char* prompt, const char* folder, ch
 
 		// Draw text prompt and separator
 		SetSDLRect(rect, MENU_TITLE_X, 8,  VIEW_WIDTH - 16, itemHeight);
-		renderer->DrawText(true, prompt, rect, false);
+		renderer->DrawText(prompt, rect, Renderer::TEXT_BIGFONT);
 
 		SetSDLRect(rect, MENU_TITLE_X, 8 + itemHeight, VIEW_WIDTH - (MENU_TITLE_X*2), 2);
 		renderer->DrawFilledRect(rect, renderer->m_separatorColour);
+
+		// Draw Cancel button
+		renderer->DrawButton(TM_CANCEL_BTN, cancelButtonRect);
 
 		// Draw visible portion of file list
 		for (int i = 0; i < itemsPerPage; i++)
@@ -1040,7 +1106,7 @@ bool DoFileSelect(Renderer *renderer, const char* prompt, const char* folder, ch
 			//strcpy(s, text);
 			//strcat(s, "_");
 			SetSDLRect(rect, MENU_ITEM_X, MENU_ITEM_START_Y + i * itemHeight, VIEW_WIDTH - 16, itemHeight);
-			renderer->DrawText(true, listnames[scrollPos + i], rect, false);
+			renderer->DrawText(listnames[scrollPos + i], rect, Renderer::TEXT_BIGFONT);
 			}
 
 		// Draw selection highlight
@@ -1051,9 +1117,9 @@ bool DoFileSelect(Renderer *renderer, const char* prompt, const char* folder, ch
 		// Draw instructions
 		SetSDLRect(rect, MENU_TITLE_X, VIEW_HEIGHT - 4 - itemHeight, 0, 0);
 #ifdef PSP				
-		font->DrawText(screen, "Use DPAD to highlight file, X to select.", rect, false);
+		font->DrawText("Use DPAD to highlight file, X to select.", rect, Renderer::TEXT_BIGFONT);
 #else
-		renderer->DrawText(true, "Use arrows to highlight file, ENTER to select.", rect, false);
+		renderer->DrawText("Use arrows to highlight file, ENTER to select.", rect, Renderer::TEXT_BIGFONT);
 #endif
 
 		//SDL_RenderPresent(renderer);
@@ -1103,7 +1169,7 @@ bool ShowProgress(Renderer *renderer, const char* text, int progress)
 	renderer->DrawFilledRect(rect, renderer->m_borderColour);
 	// Draw text
 	SetSDLRect(rect, extents.x + 16, extents.y + 16, extents.w - 16, itemHeight);
-	renderer->DrawText(true, text, rect, true);
+	renderer->DrawText(text, rect, Renderer::TEXT_BIGFONT | Renderer::TEXT_CLIP);
 
 	// Draw progress bar
 	SetSDLRect(rect, extents.x + 20, extents.y + PROGBOX_HEIGHT/2,  progress*4, 20);

@@ -16,7 +16,7 @@
 #define MAX_FILENAME_LEN	32		
 
 // GUI functions
-extern bool DoMessage(Renderer *renderer, const char *title, const char *prompt, bool confirm);
+extern bool DoMessage(Renderer *renderer, const char *title, const char *msg, bool confirm);
 extern bool DoTextInput(Renderer *renderer, const char* prompt, char* text, int maxlen);
 extern bool DoFileSelect(Renderer *renderer, const char* prompt, const char* folder, char* filename);
 extern bool ShowProgress(Renderer *renderer, const char* text, int progress);

@@ -8,21 +8,24 @@ public:
 	Renderer(SDL_Renderer* renderer);
 	~Renderer(void);
 
+	// Text rendering options
+	enum TEXTOPTIONS {
+		TEXT_SMALLFONT = 1,				// Use small font (default)
+		TEXT_BIGFONT = 2,				// Use large font
+		TEXT_CLIP = 4,					// Clip DrawText()
+		TEXT_TRANS = 8					// Draw text as transparent
+		};
+
 	void ShowSplashScreen();
 	void Clear();
-	void DrawText(bool big, const char *s, SDL_Rect& rect, bool clip);
-	//void DrawSliders(unsigned char vol, unsigned char bpm);
-	//void DrawTrackInfo(Song &song, DrumKit &drumkit);
-	//void DrawSequenceList(Song &song);
-	//void DrawPatternList(Song &song);
-	//void DrawPatternGrid(DrumPattern* pattern);
-	//void DrawGeneralInfo(const char *songName, const char *drumkitName, Transport &transport);
+	void DrawText(const char *s, SDL_Rect& rect, int options);
 	void DrawCursor(int x, int y, bool showWavWriterCursor);
 	void DrawButton(TEXMAP textureId, int x, int y);
 	void DrawButton(TEXMAP textureId, const SDL_Rect &destRect);
 	void Blit();
 	void DrawRect(const SDL_Rect &rect, const SDL_Colour colour);
 	void DrawFilledRect(const SDL_Rect &rect, const SDL_Colour colour);
+	void Fade(const SDL_Colour &fadeColour);
 
 	// TODO
 	// DrawMenuBG

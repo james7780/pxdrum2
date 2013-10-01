@@ -21,7 +21,7 @@ public:
 	
 	// operations
 	void DrawGlyph(SDL_Renderer* renderer, char c, int destx, int desty);
-	void DrawText(SDL_Renderer* renderer, const char *s, SDL_Rect& rect, bool clip);
+	void DrawText(SDL_Renderer* renderer, const char *s, SDL_Rect& rect, bool clip, bool trans = false);
 	int GetFontHeight()
 		{
 		return fontCharHeight;

@@ -79,21 +79,40 @@ Renderer::Renderer(SDL_Renderer* renderer)
 		{
 		// background, border, separator, highlight colours for gui come from textures.bmp
 		SDL_LockSurface(guiSurf);
-		m_bgColour = *((SDL_Colour*)guiSurf->pixels + 128 + (188*guiSurf->w));
+
+		Uint8 *pPixel = (Uint8 *)guiSurf->pixels + (256*guiSurf->pitch);	
+		Uint32 pixel = *(Uint32 *)pPixel;
+		Uint8 r, g, b;
+		SDL_GetRGB(pixel, guiSurf->format, &r, &g, &b);
+		SetSDLColour(m_bgColour, r, g, b, 255);
 		printf("Background colour = %08X\n", m_bgColour);
-		m_borderColour = *((SDL_Colour*)guiSurf->pixels + 128 + (196*guiSurf->w));
+
+		//m_borderColour = *((SDL_Colour*)guiSurf->pixels + (272*guiSurf->w));
+		pPixel = (Uint8 *)guiSurf->pixels + (272*guiSurf->pitch);	
+		pixel = *(Uint32 *)pPixel;
+		SDL_GetRGB(pixel, guiSurf->format, &r, &g, &b);
+		SetSDLColour(m_borderColour, r, g, b, 255);
 		printf("Border colour = %08X\n", m_borderColour);
-		m_separatorColour = *((SDL_Colour*)guiSurf->pixels + 128 + (204*guiSurf->w));
+
+		pPixel = (Uint8 *)guiSurf->pixels + (288*guiSurf->pitch);	
+		pixel = *(Uint32 *)pPixel;
+		SDL_GetRGB(pixel, guiSurf->format, &r, &g, &b);
+		SetSDLColour(m_separatorColour, r, g, b, 255);
 		printf("Separator colour = %08X\n", m_separatorColour);
-		m_highlightColour = *((SDL_Colour*)guiSurf->pixels + 128 + (212*guiSurf->w));
+
+		pPixel = (Uint8 *)guiSurf->pixels + (304*guiSurf->pitch);	
+		pixel = *(Uint32 *)pPixel;
+		SDL_GetRGB(pixel, guiSurf->format, &r, &g, &b);
+		SetSDLColour(m_highlightColour, r, g, b, 255);
 		printf("HIghlight colour = %08X\n", m_highlightColour);
+
 		SDL_UnlockSurface(guiSurf);
 
-		// TEST
-		SetSDLColour(m_bgColour, 0, 0, 0, 255);
-		SetSDLColour(m_borderColour, 255, 255, 255, 255);
-		SetSDLColour(m_separatorColour, 0, 255, 255, 255);
-		SetSDLColour(m_highlightColour, 255, 255, 0, 255);
+		//// TEST
+		//SetSDLColour(m_bgColour, 0, 0, 0, 255);
+		//SetSDLColour(m_borderColour, 255, 255, 255, 255);
+		//SetSDLColour(m_separatorColour, 0, 255, 255, 255);
+		//SetSDLColour(m_highlightColour, 255, 255, 0, 255);
 
 		// Copy this surface to a texture
 		m_guiTex = SDL_CreateTextureFromSurface(m_sdlRenderer, guiSurf);
@@ -160,12 +179,14 @@ void Renderer::Clear()
 
 /// Draw text
 /// @param big			Use big font (else use smaller font)
-void Renderer::DrawText(bool big, const char *s, SDL_Rect& rect, bool clip)
+void Renderer::DrawText(const char *s, SDL_Rect& rect, int options)
 {
-	FontEngine *font = big ? m_bigFont : m_smallFont;
+	FontEngine *font = (options & TEXT_BIGFONT) ? m_bigFont : m_smallFont;
 	if (font)
 		{
-		font->DrawText(m_sdlRenderer, s, rect, clip);
+		bool clip = (options & TEXT_CLIP) ? true : false;
+		bool trans = (options & TEXT_TRANS) ? true : false;
+		font->DrawText(m_sdlRenderer, s, rect, clip, trans);
 		}
 
 }
@@ -225,13 +246,24 @@ void Renderer::Blit()
 /// Draw a rectangle outline
 void Renderer::DrawRect(const SDL_Rect &rect, const SDL_Colour colour)
 {
-	SDL_SetRenderDrawColor(m_sdlRenderer, colour.r, colour.g, colour.b, 255);
+	SDL_SetRenderDrawColor(m_sdlRenderer, colour.r, colour.g, colour.b, colour.a);
 	SDL_RenderDrawRect(m_sdlRenderer, &rect);
 }
 
 /// Draw a filled rectangle
 void Renderer::DrawFilledRect(const SDL_Rect &rect, const SDL_Colour colour)
 {
-	SDL_SetRenderDrawColor(m_sdlRenderer, colour.r, colour.g, colour.b, 255);
+	SDL_SetRenderDrawColor(m_sdlRenderer, colour.r, colour.g, colour.b, colour.a);
 	SDL_RenderFillRect(m_sdlRenderer, &rect);
+}
+
+/// Fade screen towards the given colour, using the alpha value to blend
+void Renderer::Fade(const SDL_Colour &fadeColour)
+{
+	SDL_Rect rect;
+	SetSDLRect(rect, 0, 0, VIEW_WIDTH, VIEW_HEIGHT);
+	SDL_SetRenderDrawBlendMode(m_sdlRenderer, SDL_BLENDMODE_BLEND);
+	this->DrawFilledRect(rect, fadeColour);
+	SDL_SetRenderDrawBlendMode(m_sdlRenderer, SDL_BLENDMODE_NONE);
+	this->Blit();
 }

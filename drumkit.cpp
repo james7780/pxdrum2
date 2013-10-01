@@ -174,7 +174,7 @@ bool DrumKit::Load(const char* kitname, void (*progressCallback)(int, const char
 									drums[i].vol = mix;
 									drums[i].pan = pan;
 									// TODO : safe name copy
-									strcpy(drums[i].name, sname);
+									strcpy_s(drums[i].name, sname);
 									// Load sample
 									if (drums[i].sampleData)
 										Mix_FreeChunk(drums[i].sampleData);
