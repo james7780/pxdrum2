@@ -197,11 +197,9 @@ int Menu::DoMenu(Renderer *renderer, SDL_Rect* extentsIn, const char* title, int
 	if (initialSelection >= 0 && initialSelection < m_numItems)
 		selected = initialSelection;
 
-	SDL_ShowCursor(SDL_ENABLE);
 
 	SDL_Event event;
 	unsigned short keyCode;
-	//SDL_ShowCursor(SDL_ENABLE);
 	int mx = 0;
 	int my = 0;
 	bool done = false;
@@ -421,10 +419,9 @@ int Menu::DoMenu(Renderer *renderer, SDL_Rect* extentsIn, const char* title, int
 		SetSDLRect(rect, extents.x + MENU_TITLE_X, y1, contentWidth, itemHeight - 1);
 		renderer->DrawRect(rect, renderer->m_highlightColour);
 
-		//// Draw mouse cursor
-		//renderer->DrawCursor(mx, my, false);
+		// Draw mouse cursor
+		SDL_ShowCursor(SDL_ENABLE);
 			
-		//SDL_RenderPresent(renderer);
 		renderer->Blit();
 
 		SDL_Delay(20);					// gives time to other threads
@@ -436,7 +433,6 @@ int Menu::DoMenu(Renderer *renderer, SDL_Rect* extentsIn, const char* title, int
 		selectedId = m_menuItems[selected].GetId();
 
 	//printf("DoMenu: selected id = %d\n", selectedId);
-	SDL_ShowCursor(SDL_DISABLE);
 		
 	return selectedId;
 }

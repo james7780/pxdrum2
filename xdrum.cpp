@@ -25,6 +25,8 @@
 
 #define XDRUM_VER	"2.0"
 
+extern SDL_Surface* LoadImageConvertToDisplay(const char* filename, bool setColourKey);
+
 // xdrum "screen modes"
 enum XDRUM_MODE { XM_MAIN = 0, XM_FILE = 1, XM_KIT = 2 };
 
@@ -324,30 +326,24 @@ static void DrawTrackInfo(Song &song, DrumKit &drumkit)
 	const int y0 = zones[ZONE_TRACKINFO].y;
 	const int w0 = zones[ZONE_TRACKINFO].w;
 	const int h0 = PATBOX.h;	
-	//SDL_Rect src;
 	SDL_Rect dest;
 	for (int i = 0; i < NUM_TRACKS; i++)
 		{
-		//src = texmap[TM_SLIDER_BG];
 		SetSDLRect(dest, x0, y0 + i*h0, w0, h0);
-		//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 		renderer->DrawButton(TM_SLIDER_BG, dest);
-		//src = texmap[TM_SLIDER_FG];
 		int w = (song.trackMixInfo[i].vol * (w0 - PATBOX.w)) / 255;
 		SetSDLRect(dest, x0, y0 + i*h0, w, h0);
-		//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 		renderer->DrawButton(TM_SLIDER_FG, dest);
 		
 		// Draw track name (instr name)
 		dest.x += 2;
-		dest.y += 2;
+		dest.y += 8;
 		dest.w = w0 - PATBOX.w;
 		if (0 == drumkit.drums[i].name[0])
 			//sprintf(trackName, "Track %d", i+1);
 			strcpy(trackName, "---");
 		else
 			strcpy(trackName, drumkit.drums[i].name);
-		//m_bigFont->DrawText(m_sdlRenderer, trackName, dest, true);
 		renderer->DrawText(trackName, dest, Renderer::TEXT_BIGFONT | Renderer::TEXT_CLIP | Renderer::TEXT_TRANS);
 
 /*
@@ -366,20 +362,14 @@ static void DrawTrackInfo(Song &song, DrumKit &drumkit)
 		SetSDLRect(dest, w0 - PATBOX.w,  y0 + i*h0, PATBOX.w, PATBOX.h);
 		if (TrackMixInfo::TS_MUTE == song.trackMixInfo[i].state)
 			{
-			//src = texmap[TM_LIGHT_OFF];
-			//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 			renderer->DrawButton(TM_LIGHT_OFF, dest);
 			}
 		else if (TrackMixInfo::TS_SOLO == song.trackMixInfo[i].state)
 			{
-			//src = texmap[TM_LIGHT_SOLO];
-			//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 			renderer->DrawButton(TM_LIGHT_SOLO, dest);
 			}
 		else
 			{
-			//src = texmap[TM_LIGHT_ON];
-			//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 			renderer->DrawButton(TM_LIGHT_ON, dest);
 			}
 
@@ -392,10 +382,9 @@ static void DrawSequenceList(Song &song)
 	if (!renderer)
 		return;
 
-
 	char s[40];
-	char* patname;
-	char no_pat_name[32] = "---";
+	const char* patname;
+	const char *no_pat_name = "---";
 	SDL_Rect src = texmap[TM_SONGITEM];
 	SDL_Rect dest = zones[ZONE_SONGLIST];
 	dest.w = PATBOX.w;
@@ -415,8 +404,10 @@ static void DrawSequenceList(Song &song)
 	SDL_Rect textRect;
 	for (int i = song.songListScrollPos; i < PATTERNS_PER_SONG; i++)
 		{
-		//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
-		renderer->DrawButton(TM_SONGITEM, dest);
+		if (i == song.songPos)
+			renderer->DrawButton(TM_SONGITEM_HILITE, dest);
+		else
+			renderer->DrawButton(TM_SONGITEM, dest);
 
 		// Draw song pattern index
 		int patIndex = song.songList[i];
@@ -452,9 +443,10 @@ static void DrawPatternList(Song &song)
 
 
 	char s[40];
-	SDL_Rect src = texmap[TM_PATTERNITEM];
+	//SDL_Rect src = texmap[TM_PATTERNITEM];
 	SDL_Rect dest0 = zones[ZONE_PATLIST];
 
+	// Draw pattern list buttons
 	for (int i = 0; i < 2; i++)
 		{
 		SDL_Rect dest = dest0;
@@ -463,33 +455,37 @@ static void DrawPatternList(Song &song)
 		dest.y += i * PATBOX.h;
 		for (int j = 0; j < 10; j++)
 			{
-			//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
-			renderer->DrawButton(TM_PATTERNITEM, dest);
+			int patNum = i*10 + j;
+			if (patNum == song.currentPatternIndex)
+				renderer->DrawButton(TM_PATTERNITEM_HILITE, dest);
+			else
+				renderer->DrawButton(TM_PATTERNITEM, dest);
 			dest.x += PATBOX.w;
 			}
 		}
 
+	// draw pattern numbers/names
 	for (int i = 0; i < 2; i++)
 		{
 		SDL_Rect dest = dest0;
 		dest.w = PATBOX.w;
 		dest.h = PATBOX.h;
-		dest.x += 4;
-		dest.y += 4 + i * PATBOX.h;
+		dest.x += 3;
+		dest.y += 3 + i * PATBOX.h;
 		for (int j = 0; j < 10; j++)
 			{
-			// draw pattern number/name
 			int patNum = i*10 + j;
 			if (patNum == song.currentPatternIndex)
 				sprintf(s, "#%2d", patNum + 1);
 			else
 				sprintf(s, " %2d", patNum + 1);
-			//m_smallFont->DrawText(m_sdlRenderer, s, dest, false);
 			renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
-			dest.y += renderer->m_smallFont->GetFontHeight();
-			//m_smallFont->DrawText(m_sdlRenderer, song.patterns[patNum].name, dest, false);
+			//dest.y += renderer->m_smallFont->GetFontHeight();
+			dest.y += dest.h / 2;
+
 			renderer->DrawText(song.patterns[patNum].name, dest, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
-			dest.y -= renderer->m_smallFont->GetFontHeight();
+			//dest.y -= renderer->m_smallFont->GetFontHeight();
+			dest.y -= dest.h / 2;
 			dest.x += PATBOX.w;
 			}
 		}
@@ -555,8 +551,6 @@ static void DrawPatternGrid(DrumPattern* pattern)
 
 	// Draw pattern name
 	dest = zones[ZONE_PATNAME];
-	//SDL_SetRenderDrawColor(sdlRenderer, 0, 40, 0, 255);
-	//SDL_RenderFillRect(sdlRenderer, &dest);
 	SDL_Colour colour;
 	colour.r = 0;
 	colour.g = 40;
@@ -584,32 +578,25 @@ static void DrawGeneralInfo(const char *songName, const char *drumkitName, Trans
 
 	// draw song name
 	SDL_Rect dest = zones[ZONE_SONGNAME];
-	//m_smallFont->DrawText(m_sdlRenderer, "Song:", dest, false);
 	renderer->DrawText("Song:", dest, Renderer::TEXT_SMALLFONT);
 	dest.y += renderer->m_smallFont->GetFontHeight();
-	//m_bigFont->DrawText(m_sdlRenderer, songName, dest, false);
 	renderer->DrawText(songName, dest, Renderer::TEXT_BIGFONT);
 	// draw drumkit name
 	dest = zones[ZONE_KITNAME];
-	//m_smallFont->DrawText(m_sdlRenderer, "Kit:", dest, false);
 	renderer->DrawText("Kit:", dest, Renderer::TEXT_SMALLFONT);
 	dest.y += renderer->m_smallFont->GetFontHeight();
-	//m_bigFont->DrawText(m_sdlRenderer, drumkitName, dest, false);
 	renderer->DrawText(drumkitName, dest, Renderer::TEXT_BIGFONT);
 
 	// draw shuffle / volrand options values
 	dest = zones[ZONE_OPTIONS];
 	dest.x += 4;
 	sprintf(s, "Shuffle %d", transport.shuffle);
-	//m_smallFont->DrawText(m_sdlRenderer, s, dest, false);
 	renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT);
 	dest.y += 16;
 	sprintf(s, "Jitter  %d", transport.jitter);
-	//m_smallFont->DrawText(m_sdlRenderer, s, dest, false);
 	renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT);
 	dest.y += 16;
 	sprintf(s, "VolRand %d ", transport.volrand);
-	//m_smallFont->DrawText(m_sdlRenderer, s, dest, false);
 	renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT);
 
 	// transport display (mode, play/rewind, etc)
@@ -624,13 +611,10 @@ static void DrawGeneralInfo(const char *songName, const char *drumkitName, Trans
 	dest.x = zones[ZONE_TRANSPORT].x + 4;
 	dest.y += 20;
 	if (Transport::PM_PATTERN == transport.mode)
-		//m_smallFont->DrawText(m_sdlRenderer, "Pattern", dest, false);
 		renderer->DrawText("Pattern", dest, Renderer::TEXT_SMALLFONT);
 	else if (Transport::PM_SONG == transport.mode)
-		//m_smallFont->DrawText(m_sdlRenderer, " Song", dest, false);
 		renderer->DrawText(" Song", dest, Renderer::TEXT_SMALLFONT);
 	else
-		//m_smallFont->DrawText(m_sdlRenderer, " Live", dest, false);
 		renderer->DrawText(" Live", dest, Renderer::TEXT_SMALLFONT);
 
 	if (transport.playing)
@@ -638,8 +622,6 @@ static void DrawGeneralInfo(const char *songName, const char *drumkitName, Trans
 		dest = zones[ZONE_TRANSPORT];
 		dest.x += 64;
 		dest.w = 64;
-		//src = texmap[TM_PAUSE_BTN];
-		//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 		renderer->DrawButton(TM_PAUSE_BTN, dest);
 		}
 
@@ -664,6 +646,22 @@ static void DrawAll()
 		DrawPatternGrid(NULL);
 	else
 		DrawPatternGrid(&song.patterns[song.currentPatternIndex]);
+}
+
+/// Flash highlight the clicked button
+static void DrawClickBox(const SDL_Rect &rect)
+{
+	if (!renderer || !sdlRenderer)
+		return;
+
+	// Flash highlight clicked virtual button
+	SDL_Colour flashColour;
+	SetSDLColour(flashColour, 255, 255, 255, 192);
+	SDL_SetRenderDrawBlendMode(sdlRenderer, SDL_BLENDMODE_BLEND);
+	renderer->DrawFilledRect(rect, flashColour);
+	SDL_SetRenderDrawBlendMode(sdlRenderer, SDL_BLENDMODE_NONE);
+	renderer->Blit();
+	SDL_Delay(20);
 }
 
 /// Prompt user to load a drumkit
@@ -975,18 +973,18 @@ static int DoSequenceMenu()
 static int DoHelpMenu()
 {
 #ifdef PSP			
-			const char* text = 	"START to stop/start playing\n" \
-								"SQUARE to rewind\n" \
-								"SELECT to change mode\n" \
-								"LSB for previous pattern\n" \
-								"RSB for next pattern";
+	const char* text = 	"START to stop/start playing\n" \
+						"SQUARE to rewind\n" \
+						"SELECT to change mode\n" \
+						"LSB for previous pattern\n" \
+						"RSB for next pattern";
 #else
-			const char* text = 	"SPACE to stop/start playing\n" \
-								"R, B or BACKSPACE to rewind\n" \
-								"M to change mode\n" \
-								"PGUP or [ for previous pattern\n" \
-								"PGDOWN or ] for next pattern\n" \
-								"T for tap tempo";
+	const char* text = 	"SPACE to stop/start playing\n" \
+						"R, B or BACKSPACE to rewind\n" \
+						"M to change mode\n" \
+						"PGUP or [ for previous pattern\n" \
+						"PGDOWN or ] for next pattern\n" \
+						"T for tap tempo";
 #endif
 	DoMessage(renderer, "Help - Keys / Buttons", text, false);
 	//SDL_ShowSimpleMessageBox(0, "Help - Keys/Buttons", text, sdlWindow);							
@@ -1162,8 +1160,8 @@ static int GetMouseZone(int x, int y, int mode)
 static void SetMouseToGridCursor()
 {
 	SDL_Rect rect = zones[ZONE_PATGRID];
-	cursorX = (float)(rect.x + (currentStep * PATBOX.w) + (PATBOX.x / 2));
-	cursorY = (float)(rect.y + (currentTrack * PATBOX.h) + (PATBOX.y / 2));
+	cursorX = (float)(rect.x + (currentStep * PATBOX.w) + (PATBOX.w / 2));
+	cursorY = (float)(rect.y + (currentTrack * PATBOX.h) + (PATBOX.h / 2));
 	SDL_WarpMouseInWindow(sdlWindow, (int)cursorX, (int)cursorY);
 }
 
@@ -1394,6 +1392,8 @@ void ProcessLeftClick(int x, int y)
 	int x0 = x - rect.x;
 	int y0 = y - rect.y;
 	printf("ProcessLeftClick: zone = %d, x0 = %d, y0 = %d\n", zone, x0, y0);
+	// Initialise the "flash rect" to the entire zone
+	SDL_Rect flashRect = rect;
 		
 	switch(zone)
 		{
@@ -1403,11 +1403,21 @@ void ProcessLeftClick(int x, int y)
 			// If on volmeter, set main vol (0 to 100%)
 			int vol = (song.vol * 100) / 255;
 			if (x0 < PATBOX.w)
+				{
 				vol -= 1;
+				flashRect.w = PATBOX.w;
+				}
 			else if (x0 >= (rect.w - PATBOX.w))
+				{
 				vol += 1;
+				flashRect.x = (rect.w - PATBOX.w);
+				flashRect.w = PATBOX.w;
+				}
 			else if (x0 >= PATBOX.w && x0 < (rect.w - PATBOX.w))
+				{
 				vol =  ((x0 - PATBOX.w) * 100) / (rect.w - PATBOX.w - PATBOX.w);
+				flashRect.w = 0;
+				}
 				
 			SetMainVolume(vol);
 			DrawSliders(song.vol, song.BPM);
@@ -1420,16 +1430,21 @@ void ProcessLeftClick(int x, int y)
 			if (x0 < PATBOX.w)
 				{
 				song.BPM -= 1;
+				flashRect.w = PATBOX.w;
 				}
 			else if (x0 >= (rect.w - PATBOX.w))
 				{
 				song.BPM += 1;
+				flashRect.x = (rect.w - PATBOX.w);
+				flashRect.w = PATBOX.w;
 				}
 			else if (x0 >= PATBOX.w && x0 < (rect.w - PATBOX.w))
 				{
 				int tapBPM = tapTempo.AddTap();
 				if (tapBPM > 20 && tapBPM < 251)
 					song.BPM = tapBPM;
+				flashRect.x = PATBOX.w;
+				flashRect.w = rect.w - (PATBOX.w * 2);
 				}
 			DrawSliders(song.vol, song.BPM);
 			}		
@@ -1457,6 +1472,10 @@ void ProcessLeftClick(int x, int y)
 					}
 				}
 			DrawAll();
+			flashRect.x = rect.x + ((x0 / PATBOX.w) * PATBOX.w);
+			flashRect.y = rect.y;
+			flashRect.w = PATBOX.w;
+			flashRect.h = PATBOX.h;
 			}
 			break;
 		case ZONE_PATLIST :
@@ -1472,12 +1491,16 @@ void ProcessLeftClick(int x, int y)
 				SyncPatternPointer();
 				}
 			DrawAll();
+			flashRect.x = rect.x + ((patNum % 10) * PATBOX.w);
+			flashRect.y = rect.y + ((patNum / 10) * PATBOX.h);
+			flashRect.w = PATBOX.w;
+			flashRect.h = PATBOX.h;
 			}
 			break;
-		case ZONE_ADDTOSONGBTN :
-			song.InsertPattern(song.currentPatternIndex);
-			DrawSequenceList(song);
-			break;			
+		//case ZONE_ADDTOSONGBTN :
+		//	song.InsertPattern(song.currentPatternIndex);
+		//	DrawSequenceList(song);
+		//	break;			
 		case ZONE_TRACKINFO :
 			{
 			// Handle mute / solo / mix vol 
@@ -1486,6 +1509,7 @@ void ProcessLeftClick(int x, int y)
 				{
 				// Set / reset MUTE state
 				SetTrackMute(track);
+				SetSDLRect(flashRect, rect.x + (rect.w - PATBOX.w), rect.y + (track * PATBOX.h), PATBOX.w, PATBOX.h);
 				}
 			else if (x0 < (rect.w - PATBOX.w))
 				{
@@ -1502,6 +1526,7 @@ void ProcessLeftClick(int x, int y)
 						trackMixVol -= 10;
 					}
 				song.trackMixInfo[track].vol = trackMixVol;
+				flashRect.w = 0;		// no click flash
 				}	
 				
 			DrawTrackInfo(song, drumKit);
@@ -1532,31 +1557,41 @@ void ProcessLeftClick(int x, int y)
 				*/
 				ProcessKeyPress(SDL_SCANCODE_X, ZONE_PATGRID);							
 				}
+			SetSDLRect(flashRect, rect.x + (step * PATBOX.w), rect.y + (track * PATBOX.h), PATBOX.w, PATBOX.h);
 			}
 			break;
 		case ZONE_PATNAME :
 			{
+			DrawClickBox(flashRect);		// Flash before menu
 			DoPatternMenu();
+			flashRect.w = 0;				// reset flash (already done)
 			}
 			break;
 		case ZONE_SONGNAME :
 			{
+			DrawClickBox(flashRect);		// Flash before menu
 			DoFileMenu(0);
+			flashRect.w = 0;
 			}
 			break;
 		case ZONE_KITNAME :
 			{
+			DrawClickBox(flashRect);		// Flash before menu
 			DoFileMenu(2);	
+			flashRect.w = 0;
 			}
 			break;
 		case ZONE_OPTIONS :
 			{
+			DrawClickBox(flashRect);		// Flash before menu
 			DoOptionsMenu();	
+			flashRect.w = 0;
 			}
 			break;
 		case ZONE_TRANSPORT :
 			{
 			// Handle mode / play / rewind button 
+			flashRect.w = 64;
 			int which = x0 / 64;
 			if (0 == which)
 				{
@@ -1567,17 +1602,26 @@ void ProcessLeftClick(int x, int y)
 				{
 				// play / stop
 				ProcessKeyPress(SDL_SCANCODE_SPACE, ZONE_TRANSPORT);
+				flashRect.x += 64;
 				}
 			else if (2 == which)
 				{
 				// rewind
 				ProcessKeyPress(SDL_SCANCODE_R, ZONE_TRANSPORT);
+				flashRect.x += 128;
 				}
 			}
 			break;
 		default :
 			printf("No zone!\n");
+			flashRect.w = 0;
+			break;
 		}
+
+	// Flash clicked "control" if neccessary
+	if (flashRect.w > 0)
+		DrawClickBox(flashRect);
+
 }
 
 // Handle right mouse click
@@ -2052,11 +2096,16 @@ int main(int argc, char *argv[])
 	int displayedPatternIndex = song.currentPatternIndex;
 	int displayedSongPos = song.songPos;
 
-	SDL_ShowCursor(SDL_DISABLE);
+	//SDL_Surface *normalCursorImg = SDL_LoadBMP("gfx/normalCursor.bmp");
+	SDL_Surface *normalCursorImg = LoadImageConvertToDisplay("gfx/normalCursor.bmp", true);
+	SDL_Cursor *normalCursor = SDL_CreateColorCursor(normalCursorImg, 0, 0);
 	SDL_Surface *patternDragCursorImg = SDL_LoadBMP("gfx/patternDragCursor.bmp");
 	SDL_Cursor *patternDragCursor = SDL_CreateColorCursor(patternDragCursorImg, 0, 0);
 	SDL_Surface *songItemDragCursorImg = SDL_LoadBMP("gfx/songItemDragCursor.bmp");
 	SDL_Cursor *songItemDragCursor = SDL_CreateColorCursor(songItemDragCursorImg, 0, 0);
+
+	SDL_SetCursor(normalCursor);
+	SDL_ShowCursor(SDL_ENABLE);
 
 	//Uint32 lastTick = SDL_GetTicks();
 	int currentZone = 0;
@@ -2122,7 +2171,8 @@ int main(int argc, char *argv[])
 						}
 					else
 						{
-						SDL_ShowCursor(SDL_DISABLE);
+						SDL_SetCursor(normalCursor);
+						SDL_ShowCursor(SDL_ENABLE);
 						}
 					break;
 				case SDL_MOUSEBUTTONDOWN:
@@ -2186,8 +2236,8 @@ int main(int argc, char *argv[])
 						}
 					draggingPattern = false;
 					draggedSongItem = -1;
-					SDL_SetCursor(NULL);
-					SDL_ShowCursor(SDL_DISABLE);
+					SDL_SetCursor(normalCursor);
+					SDL_ShowCursor(SDL_ENABLE);
 					}
 					break;
 				case SDL_KEYDOWN:
@@ -2278,8 +2328,10 @@ int main(int argc, char *argv[])
 		if (cursorX > VIEW_WIDTH - 1) cursorX = VIEW_WIDTH - 1;
 		if (cursorY < 0) cursorY = 0;
 		if (cursorY > VIEW_HEIGHT -1) cursorY = VIEW_HEIGHT -1;
+
 		// Draw mouse cursor
-		renderer->DrawCursor((int)cursorX, (int)cursorY, wavWriter.IsWriting());
+//		renderer->DrawCursor((int)cursorX, (int)cursorY, wavWriter.IsWriting());
+		SDL_ShowCursor(SDL_ENABLE);
 
 		// Draw output sample level
 		//SetSDLRect(dest, 72, 68 - (outputSample / 200), 16, outputSample / 200);

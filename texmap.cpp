@@ -32,8 +32,10 @@ SDL_Rect texmap[TM_COUNT] = {
 	{ 192, 96, 64, 48},			// TM_PAUSE_BTN
 	{ 128, 96, 64, 48},			// TM_REWIND_BTN
 	{ 0, 0, 48, 48},			// TM_HELP_BTN			(TODO)
-	{ 240, 48, 48, 48},			// TM_SONGITEM
-	{ 288, 48, 48, 48},			// TM_PATTERNITEM
+	{ 240, 0, 48, 48},			// TM_SONGITEM
+	{ 240, 48, 48, 48},			// TM_SONGITEM_HILITE
+	{ 288, 0, 48, 48},			// TM_PATTERNITEM
+	{ 288, 48, 48, 48},			// TM_PATTERNITEM_HILITE
 	{ 0, 144, 48, 48},			// TM_OK_BTN
 	{ 48, 144, 48, 48}			// TM_CANCEL_BTN
 };
