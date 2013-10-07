@@ -397,8 +397,8 @@ static void DrawSequenceList(Song &song)
 	// songlist must "follow' song playback
 	if (song.songPos > song.songListScrollPos + 6)
 		song.songListScrollPos = song.songPos - 6;
-	else if (song.songPos < song.songListScrollPos)
-		song.songListScrollPos = song.songPos;
+	else if (song.songPos <= song.songListScrollPos)
+		song.songListScrollPos = (song.songPos > 2) ? song.songPos - 3 : 0;
 
 	// draw visible part of songlist
 	SDL_Rect textRect;
@@ -1875,8 +1875,7 @@ int play_thread_func(void *data)
 				}
 
 			// If on the beat, then set flash flag
-			if (transport.flashOnBeat && (0 == beatPos))
-				beatFlash = true;
+			beatFlash = (transport.flashOnBeat && (0 == beatPos));
 
 			// update current pattern tick pos
 			transport.patternPos++;
@@ -2096,7 +2095,6 @@ int main(int argc, char *argv[])
 	int displayedPatternIndex = song.currentPatternIndex;
 	int displayedSongPos = song.songPos;
 
-	//SDL_Surface *normalCursorImg = SDL_LoadBMP("gfx/normalCursor.bmp");
 	SDL_Surface *normalCursorImg = LoadImageConvertToDisplay("gfx/normalCursor.bmp", true);
 	SDL_Cursor *normalCursor = SDL_CreateColorCursor(normalCursorImg, 0, 0);
 	SDL_Surface *patternDragCursorImg = SDL_LoadBMP("gfx/patternDragCursor.bmp");
@@ -2253,7 +2251,7 @@ int main(int argc, char *argv[])
 		// get current zone
 		currentZone = GetMouseZone((int)cursorX, (int)cursorY, XM_MAIN);
 
-		// If we have chaned the pattern we're playing, we need to redraw
+		// If we have changed the pattern we're playing, we need to redraw
 		if (song.currentPatternIndex != displayedPatternIndex)
 			{
 			DrawAll();
@@ -2270,19 +2268,13 @@ int main(int argc, char *argv[])
 			DrawAll();
 			}
 
-
-		// blit BG "layer" to screen
-		//BlitBG();
-		//SDL_SetRenderDrawColor(sdlRenderer, 0, 0, 0, 255);
-		//SDL_RenderClear(sdlRenderer);
-		
 		// OPTIONAL - flash pattern bg on beat
 		if (beatFlash)
 			{
 			dest = zones[ZONE_PATGRID];
-			//SDL_FillRect(screen, &dest, SDL_MapRGB(screen->format, 200, 255, 200));
-			SDL_SetRenderDrawColor(sdlRenderer, 200, 255, 200, 255);
-			SDL_RenderDrawRect(sdlRenderer, &dest);
+			SDL_Colour flashColour;
+			SetSDLColour(flashColour, 200, 255, 200, 255);
+			renderer->DrawFilledRect(dest, flashColour);
 			}
 
 		// Lock grid cursor to mouse if mouse is in grid
@@ -2303,15 +2295,14 @@ int main(int argc, char *argv[])
 			}
 
 		// Draw playback bar
-		// TODO : blit from textures		
 		SetSDLRect(dest, zones[ZONE_PATGRID].x + (transport.patternPos * PATBOX.w / 4), zones[ZONE_PATGRID].y, 4, zones[ZONE_PATGRID].h);
+		SDL_Colour playbackBarColour;
 		if (0 == global_data)
-			SDL_SetRenderDrawColor(sdlRenderer, 0, 255, 0, 255);
+			SetSDLColour(playbackBarColour, 0, 255, 0, 255);
 		else // CPU struggling!
-			SDL_SetRenderDrawColor(sdlRenderer, 255, 0, 0, 255);
+			SetSDLColour(playbackBarColour, 255, 0, 0, 255);
 
-		//SDL_FillRect(screen, &dest, SDL_MapRGB(screen->format, 0, 255, 0));
-		SDL_RenderDrawRect(sdlRenderer, &dest);
+		renderer->DrawFilledRect(dest, playbackBarColour);
 
 		// Update "joystick mouse" position
 		if (ZONE_PATGRID == currentZone)
@@ -2330,7 +2321,6 @@ int main(int argc, char *argv[])
 		if (cursorY > VIEW_HEIGHT -1) cursorY = VIEW_HEIGHT -1;
 
 		// Draw mouse cursor
-//		renderer->DrawCursor((int)cursorX, (int)cursorY, wavWriter.IsWriting());
 		SDL_ShowCursor(SDL_ENABLE);
 
 		// Draw output sample level
@@ -2338,8 +2328,7 @@ int main(int argc, char *argv[])
 		//SDL_SetRenderDrawColor(sdlRenderer, 0, 255, 0, 255);
 		//SDL_RenderDrawRect(sdlRenderer, &dest);
 
-		//SDL_Flip(screen);			// waits for vsync
-		SDL_RenderPresent(sdlRenderer);
+		renderer->Blit();
 		
 		// control update rate of this loop
 		//Uint32 time_remaining = 30 - (SDL_GetTicks() - lastTick);
