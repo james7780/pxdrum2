@@ -172,8 +172,7 @@ void Renderer::ShowSplashScreen()
 void Renderer::Clear()
 {
 	// clear background
-	//SDL_FillRect(backImg, NULL, g_bgColour); //SDL_MapRGB(screen->format, 0, 0, 0));
-	SDL_SetRenderDrawColor(m_sdlRenderer, 0, 0, 0, 255);
+	SDL_SetRenderDrawColor(m_sdlRenderer, m_bgColour.r, m_bgColour.g, m_bgColour.b, 255);
 	SDL_RenderClear(m_sdlRenderer);
 }
 
@@ -234,6 +233,16 @@ void Renderer::DrawButton(TEXMAP textureId, const SDL_Rect &destRect)
 		{
 		SDL_Rect src = texmap[textureId];
 		SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &destRect);
+		}
+}
+
+/// Draw a piece of a texture from the GUI texmap
+/// @param srcRect		
+void Renderer::DrawGUITexture(const SDL_Rect &srcRect, const SDL_Rect &destRect)
+{
+	if (m_guiTex)
+		{
+		SDL_RenderCopy(m_sdlRenderer, m_guiTex, &srcRect, &destRect);
 		}
 }
 

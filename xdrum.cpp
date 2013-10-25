@@ -216,70 +216,61 @@ static void DrawSliders(unsigned char vol, unsigned char bpm)
 	// draw vol slider control
 	SDL_Rect dest = zones[ZONE_VOL];
 	dest.w = PATBOX.w;
-	//SDL_Rect src = texmap[TM_MINUS_BTN];
-	//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 	renderer->DrawButton(TM_MINUS_BTN, dest);
 
 	dest = zones[ZONE_VOL];
 	dest.x = PATBOX.w;
 	dest.w = dest.w - PATBOX.w - PATBOX.w;
-	//src = texmap[TM_SLIDER_BG];
-	//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 	renderer->DrawButton(TM_SLIDER_BG, dest);
 
 	// draw part of vol slider graphic corresponding to the vol level (0 to 255)
-	//src = texmap[TM_SLIDER_FG];
-	int w = ((vol * dest.w) / 255);
-	dest.w = w;
-	//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
-	renderer->DrawButton(TM_SLIDER_FG, dest);
+	dest.w = ((vol * dest.w) / 255);
+	//renderer->DrawButton(TM_SLIDER_FG, dest);
+	SDL_Rect src = texmap[TM_SLIDER_FG];
+	src.w = ((vol * src.w) / 255);
+	renderer->DrawGUITexture(src, dest);
 
-	sprintf(s, "%d", (vol * 100) / 255);
 	dest = zones[ZONE_VOL];
-	dest.x = PATBOX.w;
-	dest.y += 2;
-	//m_smallFont->DrawText(m_sdlRenderer, s, dest, true);
-	renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT);
+	dest.x = PATBOX.w + 2;
+	dest.y += 4;
+	renderer->DrawText("VOL", dest, Renderer::TEXT_SMALLFONT);
 
-	//src = texmap[TM_PLUS_BTN];
+	sprintf(s, "%d%%", (vol * 100) / 255);
+	dest.x = PATBOX.w + 40;
+	dest.y += 12;
+	renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
+
 	dest = zones[ZONE_VOL];
 	dest.x = dest.w - PATBOX.w;
 	dest.w = PATBOX.w;
-	//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 	renderer->DrawButton(TM_PLUS_BTN, dest);
 
 	//draw BPM slider box
-	//src = texmap[TM_MINUS_BTN];
 	dest = zones[ZONE_BPM];
 	dest.w = PATBOX.w;
-	//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 	renderer->DrawButton(TM_MINUS_BTN, dest);
 
-	//src = texmap[TM_SLIDER_BG];
 	dest = zones[ZONE_BPM];
 	dest.x = PATBOX.w;
 	dest.w = dest.w - PATBOX.w - PATBOX.w;
-	//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 	renderer->DrawButton(TM_SLIDER_BG, dest);
 
-	sprintf(s, "%d", bpm);
-	dest.x;
-	dest.y += 8;
-	//m_bigFont->DrawText(m_sdlRenderer, s, dest, true);
-	renderer->DrawText(s, dest, Renderer::TEXT_BIGFONT);
+	dest.x = PATBOX.w + 2;
+	dest.y += 4;
+	renderer->DrawText("BPM", dest, Renderer::TEXT_SMALLFONT);
+	sprintf(s, "%3d", bpm);
+	dest.x = PATBOX.w + 32;
+	dest.y += 4;
+	renderer->DrawText(s, dest, Renderer::TEXT_BIGFONT | Renderer::TEXT_TRANS);
 
-	//src = texmap[TM_TAP_BTN];
-	dest = zones[ZONE_BPM];
-	dest.x += dest.w - PATBOX.w - PATBOX.w;
-	dest.w = PATBOX.w;
-	//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
-	renderer->DrawButton(TM_TAP_BTN, dest);
+	//dest = zones[ZONE_BPM];
+	//dest.x += dest.w - PATBOX.w - PATBOX.w;
+	//dest.w = PATBOX.w;
+	//renderer->DrawButton(TM_TAP_BTN, dest);
 
-	//src = texmap[TM_PLUS_BTN];
 	dest = zones[ZONE_BPM];
 	dest.x = dest.w - PATBOX.w;
 	dest.w = PATBOX.w;
-	//SDL_RenderCopy(m_sdlRenderer, m_guiTex, &src, &dest);
 	renderer->DrawButton(TM_PLUS_BTN, dest);
 
 /*	
@@ -331,9 +322,11 @@ static void DrawTrackInfo(Song &song, DrumKit &drumkit)
 		{
 		SetSDLRect(dest, x0, y0 + i*h0, w0, h0);
 		renderer->DrawButton(TM_SLIDER_BG, dest);
-		int w = (song.trackMixInfo[i].vol * (w0 - PATBOX.w)) / 255;
-		SetSDLRect(dest, x0, y0 + i*h0, w, h0);
-		renderer->DrawButton(TM_SLIDER_FG, dest);
+		dest.w = (song.trackMixInfo[i].vol * (w0 - PATBOX.w)) / 255;
+		//renderer->DrawButton(TM_SLIDER_FG, dest);
+		SDL_Rect src = texmap[TM_SLIDER_FG];
+		src.w = (song.trackMixInfo[i].vol * src.w) / 255;
+		renderer->DrawGUITexture(src, dest);
 		
 		// Draw track name (instr name)
 		dest.x += 2;
@@ -384,7 +377,7 @@ static void DrawSequenceList(Song &song)
 
 	char s[40];
 	const char* patname;
-	const char *no_pat_name = "---";
+	const char *no_pat_name = "----";
 	SDL_Rect src = texmap[TM_SONGITEM];
 	SDL_Rect dest = zones[ZONE_SONGLIST];
 	dest.w = PATBOX.w;
@@ -416,12 +409,12 @@ static void DrawSequenceList(Song &song)
 		else
 			patname = song.patterns[patIndex].name;
 		if (i == song.songPos)
-			sprintf(s, "*%2d", i+1);
+			sprintf(s, "* %3d", i+1);
 		else
-			sprintf(s, " %2d", i+1);
+			sprintf(s, "  %3d", i+1);
 
 		textRect = dest;
-		textRect.x += 3;
+		textRect.x += 4;
 		textRect.y += 3;
 		renderer->DrawText(s, textRect, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
 		textRect.y += dest.h / 2;
@@ -476,14 +469,14 @@ static void DrawPatternList(Song &song)
 			{
 			int patNum = i*10 + j;
 			if (patNum == song.currentPatternIndex)
-				sprintf(s, "#%2d", patNum + 1);
+				sprintf(s, "#  %2d", patNum + 1);
 			else
-				sprintf(s, " %2d", patNum + 1);
+				sprintf(s, "   %2d", patNum + 1);
 			renderer->DrawText(s, dest, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
 			//dest.y += renderer->m_smallFont->GetFontHeight();
 			dest.y += dest.h / 2;
 
-			renderer->DrawText(song.patterns[patNum].name, dest, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS);
+			renderer->DrawText(song.patterns[patNum].name, dest, Renderer::TEXT_SMALLFONT | Renderer::TEXT_TRANS | Renderer::TEXT_CLIP);
 			//dest.y -= renderer->m_smallFont->GetFontHeight();
 			dest.y -= dest.h / 2;
 			dest.x += PATBOX.w;
@@ -551,16 +544,11 @@ static void DrawPatternGrid(DrumPattern* pattern)
 
 	// Draw pattern name
 	dest = zones[ZONE_PATNAME];
-	SDL_Colour colour;
-	colour.r = 0;
-	colour.g = 40;
-	colour.b = 0;
-	renderer->DrawFilledRect(dest, colour);
 	if (NULL != pattern)
 		{
 		renderer->DrawText("Pattern:", dest, Renderer::TEXT_SMALLFONT);
 		dest.y += renderer->m_smallFont->GetFontHeight();
-		renderer->DrawText(pattern->name, dest, Renderer::TEXT_BIGFONT);
+		renderer->DrawText(pattern->name, dest, Renderer::TEXT_BIGFONT | Renderer::TEXT_CLIP);
 		}
 
 }
@@ -580,12 +568,12 @@ static void DrawGeneralInfo(const char *songName, const char *drumkitName, Trans
 	SDL_Rect dest = zones[ZONE_SONGNAME];
 	renderer->DrawText("Song:", dest, Renderer::TEXT_SMALLFONT);
 	dest.y += renderer->m_smallFont->GetFontHeight();
-	renderer->DrawText(songName, dest, Renderer::TEXT_BIGFONT);
+	renderer->DrawText(songName, dest, Renderer::TEXT_BIGFONT | Renderer::TEXT_CLIP);
 	// draw drumkit name
 	dest = zones[ZONE_KITNAME];
 	renderer->DrawText("Kit:", dest, Renderer::TEXT_SMALLFONT);
 	dest.y += renderer->m_smallFont->GetFontHeight();
-	renderer->DrawText(drumkitName, dest, Renderer::TEXT_BIGFONT);
+	renderer->DrawText(drumkitName, dest, Renderer::TEXT_BIGFONT | Renderer::TEXT_CLIP);
 
 	// draw shuffle / volrand options values
 	dest = zones[ZONE_OPTIONS];
@@ -981,7 +969,7 @@ static int DoHelpMenu()
 #else
 	const char* text = 	"SPACE to stop/start playing\n" \
 						"R, B or BACKSPACE to rewind\n" \
-						"M to change mode\n" \
+						"M to change mode (Song/Pattern/Live)\n" \
 						"PGUP or [ for previous pattern\n" \
 						"PGDOWN or ] for next pattern\n" \
 						"T for tap tempo";

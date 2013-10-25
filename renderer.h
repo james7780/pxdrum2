@@ -22,6 +22,7 @@ public:
 	void DrawCursor(int x, int y, bool showWavWriterCursor);
 	void DrawButton(TEXMAP textureId, int x, int y);
 	void DrawButton(TEXMAP textureId, const SDL_Rect &destRect);
+	void DrawGUITexture(const SDL_Rect &srcRect, const SDL_Rect &destRect);
 	void Blit();
 	void DrawRect(const SDL_Rect &rect, const SDL_Colour colour);
 	void DrawFilledRect(const SDL_Rect &rect, const SDL_Colour colour);

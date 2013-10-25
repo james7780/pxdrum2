@@ -32,18 +32,18 @@ SDL_Rect PATBOX = { 0, 0, 24, 24 };
 #else
 SDL_Rect zones[ZONE_MAX] = {
 	{ 0, 0, 0, 0 },
-	{ 0, 0, 192, 48 },			// vol
-	{ 0, 48, 192, 48 },			// bpm
+	{ 0, 0, 188, 48 },			// vol
+	{ 0, 52, 188, 48 },			// bpm
 	{ 480, 0, 480, 48 },		// song list
 	{ 480, 56, 480, 96 },		// pattern list
 	{ 740, 64, 24, 32 },		// add-to-song button
-	{ 0, 160, 192, 384 },		// track info
+	{ 0, 160, 188, 384 },		// track info
 	{ 192, 160, 768, 384 },		// pattern grid
-	{ 196, 48, 256, 48 },		// song name
-	{ 0, 112, 192, 48 },		// drumkit name
+	{ 192, 52, 280, 48 },		// song name
+	{ 0, 112, 188, 48 },		// drumkit name
 	{ 388, 0, 92, 48 },			// options display (shuffle / volrand)
-	{ 196, 0, 192, 48 },		// transport 
-	{ 196, 112, 280, 48 },		// pattern name
+	{ 192, 0, 192, 48 },		// transport 
+	{ 192, 112, 280, 48 },		// pattern name
 };
 
 // pattern grid box size

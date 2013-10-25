@@ -410,8 +410,8 @@ int Menu::DoMenu(Renderer *renderer, SDL_Rect* extentsIn, const char* title, int
 		// Draw description of selected item
 		if (selected >= 0 && selected < m_numItems)
 			{
-			SetSDLRect(rect, extents.x + MENU_TITLE_X, extents.y + extents.h - itemHeight, 0, 0);
-			renderer->DrawText(m_menuItems[selected].GetDescription(), rect, Renderer::TEXT_BIGFONT);
+			SetSDLRect(rect, extents.x + MENU_TITLE_X, extents.y + extents.h - itemHeight / 2, 0, 0);
+			renderer->DrawText(m_menuItems[selected].GetDescription(), rect, Renderer::TEXT_SMALLFONT);
 			}
 
 		// Draw selection highlight
