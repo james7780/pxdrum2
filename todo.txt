@@ -1,3 +1,5 @@
+Buttons to scroll up/down in file selector.
+
 TODO
 
 1. Pitch control
